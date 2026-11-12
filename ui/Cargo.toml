@@ -1,0 +1,11 @@
+[package]
+name = "zapret-ui"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "zapret-gui"
+path = "src/main.rs"
+
+[dependencies]
+zapret-core.workspace = true
