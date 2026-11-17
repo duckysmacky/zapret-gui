@@ -1,4 +1,4 @@
-# zapret-ui - Agent Guide
+# zapret-gui - Agent Guide
 
 A Windows desktop app in Rust (a `core` library crate + a `ui` crate built with Slint) that makes Flowseal's
 [zapret-discord-youtube](https://github.com/Flowseal/zapret-discord-youtube) usable by non-technical people.
@@ -6,7 +6,7 @@ Instead of running upstream's `.bat` scripts, the app downloads upstream release
 into structured data, and drives `winws.exe` directly. On top of that it adds automatic strategy selection,
 upstream sync, a tray icon, and a friendly Russian-language UI with full parity to upstream's `service.bat` menu.
 Built first for one specific non-technical user, then released publicly (MIT).
-**zapret-ui is not an official zapret project.** The README and the app's About section say so (D21).
+**zapret-gui is not an official zapret project.** The README and the app's About section say so (D21, D28).
 
 ## Repository layout
 
@@ -86,7 +86,9 @@ touched still compiles for `x86_64-pc-windows-msvc` (CI's Windows job, or the ow
 - **Async:** tokio. Blocking work (extraction, hashing, file walking) goes through `spawn_blocking`. Never block the
   UI thread.
 - **Naming:** descriptive names, snake_case (Rust standard). No single-letter names except trivial loop counters.
-- **Strings:** the UI is Russian-only, but every user-visible string in `.slint` files uses `@tr("...")`, and Rust-side strings (tray, notifications) go through one helper, so adding English later doesn't mean touching every file.
+- **Strings:** the UI is Russian-only. User-visible strings are plain Russian literals in `.slint` and Rust; no i18n
+  layer (`@tr`, translation helpers) (D29).
+- **Modules:** `mod_name.rs` + `mod_name/` folder for submodules. Never `mod_name/mod.rs`.
 - **Logging:** `tracing` everywhere. Logs go to a rotating file (ARCHITECTURE.md#configuration).
 - **Value types:** `Command`, `CoreEvent`, `AppState` and friends derive `serde::Serialize`/`Deserialize`, so the
   core API can later move behind IPC unchanged.

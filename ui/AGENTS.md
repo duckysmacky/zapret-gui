@@ -19,8 +19,7 @@ window lifecycle. Read the root `AGENTS.md` first; this file only adds UI-specif
 - `.slint` files are the view: properties, models and callbacks only. No business logic in Slint or in the glue.
 - Expose state through Slint **globals** (e.g. an `AppState` global and a `Commands` global with callbacks), so the main
   window and the Uliana window bind to the same things.
-- Strings: every user-visible string in `.slint` uses `@tr("...")`. Rust-side strings (tray, notifications) go through
-  one helper.
+- Strings: plain Russian literals, no i18n layer (D29).
 
 ### Threads
 - The Slint event loop owns the main thread. Core runs on its tokio runtime on other threads.
@@ -31,14 +30,15 @@ window lifecycle. Read the root `AGENTS.md` first; this file only adds UI-specif
 ### Window lifecycle and tray
 - Close → hide to tray: `on_close_requested` returns `CloseRequestResponse::HideWindow`, and the app runs with
   `slint::run_event_loop_until_quit()` so it stays alive without visible windows. Quit: tell core to shut down (kills
-  winws), then `slint::quit_event_loop()`. *Unverified: confirm these APIs in the Slint version used.*
+  winws), then `slint::quit_event_loop()`. Verified in Slint 1.19 (`ui/src/main.rs`).
 - Create the tray on the main thread after the Slint backend is initialized. Forward menu events into the event loop.
-  *Unverified: on Windows, tray-icon needs a Win32 message loop on its thread. Confirm Slint's winit loop pumps it.*
+  *Unverified at runtime: tray-icon needs a Win32 message loop on its thread; it is created on the main thread where
+  winit pumps messages (compiles for Windows; check in the VM).* On Linux the tray is stubbed (D30).
 - Tray icon/color and status line come from `AppState`. Menu items call the same core commands as the window.
 
 ### Theme and Uliana skin
-- Theme: system/light/dark. Switch light/dark at runtime through `Palette.color-scheme` (*Unverified: availability
-  in the Slint version used*).
+- Theme: system/light/dark. Switch light/dark at runtime through `Palette.color-scheme` (verified in Slint 1.19;
+  `ColorScheme.unknown` = follow the system).
 - Uliana: a separate root window component bound to the same globals, chosen at startup from the mode core reports
   (`ULIANA_MODE`, D24). The pettable cat uses Slint animations + `TouchArea` with original pixel-art images.
 - No feature exists only in Uliana mode.
