@@ -1,0 +1,157 @@
+import { Button, ProgressIndicator, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+
+// First-run wizard: welcome → download → quick scan → autostart → done. Skippable.
+export component Wizard inherits VerticalBox {
+    in-out property <int> step;
+    alignment: start;
+
+    Text {
+        text: "Первый запуск (шаг " + (root.step + 1) + " из 5)";
+        font-size: 20px;
+        font-weight: 600;
+    }
+
+    if root.step == 0: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: "zapret-gui помогает открыть Discord и YouTube: скачивает zapret, сам подбирает рабочую стратегию и следит, чтобы она продолжала работать.";
+            wrap: word-wrap;
+        }
+
+        Text {
+            text: "Для работы нужны права администратора. Если раньше вы ставили zapret или другие обходы блокировок (GoodbyeDPI и т.п.) как службу, сначала удалите их.";
+            wrap: word-wrap;
+        }
+
+        if !AppState.elevated: Button {
+            text: "Перезапустить от имени администратора";
+            clicked => {
+                Commands.restart-as-admin();
+            }
+        }
+    }
+
+    if root.step == 1: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: AppState.has-bundle ? "zapret " + AppState.current-version + " скачан." : "Скачаем последнюю версию zapret с GitHub.";
+            wrap: word-wrap;
+        }
+
+        if !AppState.has-bundle: HorizontalLayout {
+            alignment: start;
+            Button {
+                text: "Скачать";
+                primary: true;
+                enabled: AppState.elevated && !AppState.job-active;
+                clicked => {
+                    Commands.check-updates();
+                }
+            }
+        }
+    }
+
+    if root.step == 2: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: "Подберём стратегию: программа по очереди попробует стратегии и проверит Discord и YouTube. Интернет при этом несколько раз ненадолго пропадёт.";
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            Button {
+                text: AppState.scan-done ? "Подобрать заново" : "Подобрать";
+                primary: !AppState.scan-done;
+                enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                clicked => {
+                    Commands.run-scan(false);
+                }
+            }
+        }
+
+        if AppState.scan-summary != "": Text {
+            text: AppState.scan-summary;
+            wrap: word-wrap;
+        }
+    }
+
+    if root.step == 3: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: "Запускать zapret-gui вместе с Windows? Программа будет стартовать в трее и сразу включать обход.";
+            wrap: word-wrap;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            Button {
+                text: AppState.autostart ? "Автозапуск включён" : "Включить автозапуск";
+                enabled: AppState.elevated && !AppState.autostart;
+                clicked => {
+                    Commands.set-setting("autostart", 1);
+                }
+            }
+        }
+    }
+
+    if root.step == 4: VerticalLayout {
+        spacing: 8px;
+        Text {
+            text: AppState.status-text;
+            font-size: 16px;
+            wrap: word-wrap;
+        }
+
+        Text {
+            text: "Готово! Окно можно закрыть: программа останется в трее. Выход — через меню значка в трее.";
+            wrap: word-wrap;
+        }
+    }
+
+    if AppState.job-active: VerticalLayout {
+        spacing: 4px;
+        Text {
+            text: AppState.job-text;
+            wrap: word-wrap;
+        }
+
+        ProgressIndicator {
+            progress: AppState.job-progress < 0 ? 0 : AppState.job-progress;
+            indeterminate: AppState.job-progress < 0;
+        }
+    }
+
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: end;
+        Button {
+            text: "Пропустить мастер";
+            clicked => {
+                Commands.finish-first-run();
+            }
+        }
+
+        if root.step > 0: Button {
+            text: "Назад";
+            enabled: !AppState.job-active;
+            clicked => {
+                root.step -= 1;
+            }
+        }
+
+        Button {
+            text: root.step == 4 ? "Готово" : "Далее";
+            primary: true;
+            enabled: !AppState.job-active && (root.step == 0 ? AppState.elevated : root.step == 1 ? AppState.has-bundle : true);
+            clicked => {
+                if root.step == 4 {
+                    Commands.finish-first-run();
+                } else {
+                    root.step += 1;
+                }
+            }
+        }
+    }
+}

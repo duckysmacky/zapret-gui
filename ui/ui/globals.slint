@@ -1,0 +1,134 @@
+// State pushed in by Rust (AppState) and actions handled by Rust (Commands).
+// Both skins (main window, later the Uliana window) bind to these globals only.
+
+export struct StrategyRow {
+    name: string,
+    active: bool,
+    usable: bool,
+    status: string,
+    details: string,
+}
+
+export struct CheckRow {
+    title: string,
+    // 0 ok, 1 warning, 2 problem
+    status: int,
+    detail: string,
+    fix-label: string,
+    fix-id: int,
+    // Non-empty: ask for confirmation with this text first.
+    fix-confirm: string,
+}
+
+export global AppState {
+    in property <string> app-version;
+    in property <bool> is-mock;
+    in property <bool> elevated: true;
+    // 0 stopped, 1 starting, 2 running, 3 error
+    in property <int> run-state;
+    in property <string> status-text;
+    in property <string> error-text;
+    in property <string> error-tail;
+    in property <bool> has-bundle;
+    in property <string> current-version;
+    in property <string> update-available;
+    in property <[string]> strategy-names;
+    in-out property <int> active-index: -1;
+    in property <[StrategyRow]> strategies;
+    in property <string> scan-summary;
+    // 0 off, 1 TCP+UDP, 2 TCP, 3 UDP
+    in-out property <int> game-filter;
+    in-out property <string> game-tcp-ports;
+    in-out property <string> game-udp-ports;
+    // 0 none, 1 loaded, 2 any
+    in-out property <int> ipset-mode: 1;
+    in property <bool> ipset-list-updated;
+    in-out property <string> list-general;
+    in-out property <string> list-exclude;
+    in-out property <string> list-ipset-exclude;
+    in property <[string]> upstream-lists;
+    in-out property <string> upstream-list-text;
+    in property <[string]> version-labels;
+    in property <[string]> version-tags;
+    in property <[bool]> version-deletable;
+    in-out property <int> version-index;
+    in property <bool> job-active;
+    in property <bool> job-cancellable;
+    in property <string> job-text;
+    // -1 = unknown
+    in property <float> job-progress: -1;
+    in property <string> watchdog-text;
+    // 0 system, 1 light, 2 dark
+    in-out property <int> theme;
+    in-out property <bool> autostart;
+    in-out property <bool> start-on-launch;
+    in-out property <bool> watchdog-enabled;
+    in-out property <int> watchdog-period: 10;
+    in-out property <bool> auto-rescan;
+    in-out property <bool> auto-check;
+    in property <bool> fakes-supported;
+    // Index 0 is "bundle default".
+    in property <[string]> fake-names;
+    in-out property <int> fake-discord-index;
+    in-out property <int> fake-game-index;
+    in property <[CheckRow]> checks;
+    in property <string> test-report;
+    in property <bool> hosts-backup-available;
+    in property <bool> first-run;
+    in property <bool> scan-done;
+    in property <string> logs;
+    in-out property <string> report-text;
+    // Last command error or info, shown in a bar.
+    in-out property <string> message;
+}
+
+export global Commands {
+    callback restart-as-admin();
+    callback enable();
+    callback disable();
+    callback select-strategy(string);
+    callback set-game-filter(int);
+    callback set-game-ports(string, string);
+    callback set-ipset-mode(int);
+    callback update-ipset-list();
+    // full scan when true
+    callback run-scan(bool);
+    callback test-strategy(string);
+    // mode 0 standard / 1 DPI; all strategies or only the active one
+    callback run-tests(int, bool);
+    callback cancel-job();
+    callback check-updates();
+    callback select-version(string);
+    callback delete-version(string);
+    // kind 0 general, 1 exclude, 2 ipset-exclude
+    callback save-list(int, string);
+    callback load-upstream-list(string, string);
+    callback run-diagnostics();
+    callback apply-fix(int);
+    callback check-hosts();
+    callback open-report();
+    callback set-setting(string, int);
+    // slot 0 Discord UDP, 1 game UDP; index into fake-names
+    callback set-fake(int, int);
+    callback finish-first-run();
+    // Runs after the user confirmed a dialog.
+    callback confirmed(string);
+    callback quit();
+}
+
+// A confirmation dialog: the action id goes to Commands.confirmed() on OK.
+export global Dialog {
+    in-out property <bool> open;
+    in-out property <string> title;
+    in-out property <string> text;
+    in-out property <string> action;
+    in-out property <string> ok-label: "OK";
+
+    public function ask(title: string, text: string, action: string, ok-label: string) {
+        self.title = title;
+        self.text = text;
+        self.action = action;
+        self.ok-label = ok-label;
+        self.open = true;
+    }
+}

@@ -1,0 +1,174 @@
+import { Button, ComboBox, GroupBox, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands, Dialog } from "../globals.slint";
+
+export component DiagnosticsPage inherits ScrollView {
+    property <int> test-scope;
+
+    VerticalBox {
+        alignment: start;
+        GroupBox {
+            title: "Проверки системы";
+            VerticalLayout {
+                spacing: 6px;
+                HorizontalLayout {
+                    alignment: start;
+                    Button {
+                        text: "Запустить проверки";
+                        enabled: !AppState.job-active;
+                        clicked => {
+                            Commands.run-diagnostics();
+                        }
+                    }
+                }
+
+                for check in AppState.checks: HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: check.status == 0 ? "✓" : check.status == 1 ? "!" : "✕";
+                        color: check.status == 0 ? #0f7b0f : check.status == 1 ? #9d5d00 : #c42b1c;
+                        font-weight: 700;
+                        min-width: 16px;
+                    }
+
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        Text {
+                            text: check.title;
+                            font-weight: 600;
+                        }
+
+                        Text {
+                            text: check.detail;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    if check.fix-label != "": Button {
+                        text: check.fix-label;
+                        enabled: AppState.elevated && !AppState.job-active;
+                        clicked => {
+                            if check.fix-confirm != "" {
+                                Dialog.ask(check.title, check.fix-confirm, "fix:" + check.fix-id, check.fix-label);
+                            } else {
+                                Commands.apply-fix(check.fix-id);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Тесты стратегий";
+            VerticalLayout {
+                spacing: 6px;
+                Text {
+                    text: "Стандартный тест проверяет сайты Discord, YouTube и другие. DPI-тест ищет «заморозку» соединения после 16–20 КБ. Во время теста интернет ненадолго пропадает.";
+                    wrap: word-wrap;
+                    color: #808080;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    ComboBox {
+                        model: ["Активная стратегия", "Все стратегии"];
+                        current-index <=> root.test-scope;
+                    }
+
+                    Button {
+                        text: "Стандартный тест";
+                        enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                        clicked => {
+                            Commands.run-tests(0, root.test-scope == 1);
+                        }
+                    }
+
+                    Button {
+                        text: "DPI-тест";
+                        enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                        clicked => {
+                            Commands.run-tests(1, root.test-scope == 1);
+                        }
+                    }
+                }
+
+                if AppState.test-report != "": TextEdit {
+                    text: AppState.test-report;
+                    read-only: true;
+                    min-height: 200px;
+                    wrap: no-wrap;
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Действия";
+            VerticalLayout {
+                spacing: 6px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Удалить службы zapret / WinDivert";
+                        enabled: AppState.elevated && !AppState.job-active;
+                        clicked => {
+                            Dialog.ask("Удаление служб", "Будут остановлены и удалены службы zapret, WinDivert и WinDivert14, а также завершены все процессы winws.exe. Продолжить?", "remove-services", "Удалить");
+                        }
+                    }
+
+                    Button {
+                        text: "Очистить кэш Discord";
+                        clicked => {
+                            Dialog.ask("Кэш Discord", "Discord будет закрыт, его кэш (Cache, Code Cache, GPUCache) удалён. Продолжить?", "clear-discord", "Очистить");
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Обновить файл hosts";
+                        enabled: AppState.elevated;
+                        clicked => {
+                            Commands.check-hosts();
+                        }
+                    }
+
+                    Button {
+                        text: "Восстановить hosts из копии";
+                        enabled: AppState.elevated && AppState.hosts-backup-available;
+                        clicked => {
+                            Dialog.ask("Восстановление hosts", "Файл hosts будет заменён последней резервной копией. Продолжить?", "restore-hosts", "Восстановить");
+                        }
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Журнал";
+            VerticalLayout {
+                spacing: 6px;
+                TextEdit {
+                    text: AppState.logs;
+                    read-only: true;
+                    min-height: 240px;
+                    wrap: no-wrap;
+                    font-size: 11px;
+                }
+
+                HorizontalLayout {
+                    alignment: start;
+                    Button {
+                        text: "Отчёт для поддержки…";
+                        clicked => {
+                            Commands.open-report();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

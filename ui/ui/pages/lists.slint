@@ -1,0 +1,143 @@
+import { Button, ComboBox, GroupBox, LineEdit, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+
+component UserList inherits GroupBox {
+    in property <int> kind;
+    in property <string> hint;
+    in-out property <string> entries;
+
+    VerticalLayout {
+        spacing: 6px;
+        Text {
+            text: root.hint;
+            color: #808080;
+            wrap: word-wrap;
+        }
+
+        TextEdit {
+            text <=> root.entries;
+            min-height: 90px;
+            wrap: no-wrap;
+        }
+
+        HorizontalLayout {
+            alignment: start;
+            Button {
+                text: "Сохранить";
+                clicked => {
+                    Commands.save-list(root.kind, root.entries);
+                }
+            }
+        }
+    }
+}
+
+export component ListsPage inherits ScrollView {
+    property <int> upstream-index;
+    property <string> filter;
+
+    VerticalBox {
+        alignment: start;
+        Text {
+            text: "По одной записи на строку. Можно вставить сразу много строк. Изменения применяются сразу (обход перезапустится).";
+            wrap: word-wrap;
+        }
+
+        UserList {
+            title: "Свои домены для обхода";
+            hint: "Например: example.com";
+            kind: 0;
+            entries <=> AppState.list-general;
+        }
+
+        UserList {
+            title: "Исключённые домены";
+            hint: "Эти сайты будут открываться без обхода.";
+            kind: 1;
+            entries <=> AppState.list-exclude;
+        }
+
+        UserList {
+            title: "Исключённые IP и подсети";
+            hint: "Например: 192.168.0.0/16 или 1.2.3.4";
+            kind: 2;
+            entries <=> AppState.list-ipset-exclude;
+        }
+
+        GroupBox {
+            title: "Режим IPSet";
+            VerticalLayout {
+                spacing: 6px;
+                ComboBox {
+                    model: ["none: выключен", "loaded: по списку (по умолчанию)", "any: все IP-адреса"];
+                    current-index <=> AppState.ipset-mode;
+                    selected => {
+                        Commands.set-ipset-mode(self.current-index);
+                    }
+                }
+
+                if AppState.ipset-mode == 2: Text {
+                    text: "Внимание: в режиме any многие сайты могут перестать открываться.";
+                    color: #c42b1c;
+                    wrap: word-wrap;
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Обновить список IPSet";
+                        enabled: AppState.elevated;
+                        clicked => {
+                            Commands.update-ipset-list();
+                        }
+                    }
+
+                    Text {
+                        vertical-alignment: center;
+                        text: AppState.ipset-list-updated ? "Используется обновлённый список" : "Используется список из версии zapret";
+                        color: #808080;
+                    }
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Списки zapret (только просмотр)";
+            VerticalLayout {
+                spacing: 6px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    ComboBox {
+                        model: AppState.upstream-lists;
+                        current-index <=> root.upstream-index;
+                        horizontal-stretch: 1;
+                    }
+
+                    LineEdit {
+                        placeholder-text: "Поиск";
+                        text <=> root.filter;
+                        horizontal-stretch: 1;
+                        accepted => {
+                            Commands.load-upstream-list(AppState.upstream-lists[root.upstream-index], root.filter);
+                        }
+                    }
+
+                    Button {
+                        text: "Показать";
+                        enabled: AppState.upstream-lists.length > 0;
+                        clicked => {
+                            Commands.load-upstream-list(AppState.upstream-lists[root.upstream-index], root.filter);
+                        }
+                    }
+                }
+
+                TextEdit {
+                    text <=> AppState.upstream-list-text;
+                    read-only: true;
+                    min-height: 200px;
+                    wrap: no-wrap;
+                }
+            }
+        }
+    }
+}

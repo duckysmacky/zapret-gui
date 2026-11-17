@@ -1,0 +1,114 @@
+import { Button, ComboBox, GroupBox, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+
+export component HomePage inherits VerticalBox {
+    alignment: start;
+
+    GroupBox {
+        title: "Обход блокировок";
+        VerticalLayout {
+            spacing: 8px;
+            Text {
+                text: AppState.status-text;
+                font-size: 20px;
+                font-weight: 600;
+                wrap: word-wrap;
+            }
+
+            HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+                Button {
+                    text: AppState.run-state == 2 || AppState.run-state == 1 ? "Выключить" : "Включить";
+                    primary: AppState.run-state != 2;
+                    enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                    clicked => {
+                        if AppState.run-state == 2 || AppState.run-state == 1 {
+                            Commands.disable();
+                        } else {
+                            Commands.enable();
+                        }
+                    }
+                }
+
+                Button {
+                    text: "Автоподбор стратегии";
+                    enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                    clicked => {
+                        Commands.run-scan(false);
+                    }
+                }
+            }
+
+            if AppState.scan-summary != "": Text {
+                text: AppState.scan-summary;
+                wrap: word-wrap;
+            }
+            if AppState.watchdog-text != "": Text {
+                text: AppState.watchdog-text;
+                wrap: word-wrap;
+            }
+        }
+    }
+
+    if AppState.error-text != "": GroupBox {
+        title: "Ошибка";
+        VerticalLayout {
+            spacing: 6px;
+            Text {
+                text: AppState.error-text;
+                color: #c42b1c;
+                wrap: word-wrap;
+            }
+
+            if AppState.error-tail != "": Text {
+                text: AppState.error-tail;
+                font-family: "monospace";
+                wrap: word-wrap;
+            }
+        }
+    }
+
+    GroupBox {
+        title: "Стратегия";
+        VerticalLayout {
+            spacing: 6px;
+            if AppState.has-bundle: ComboBox {
+                model: AppState.strategy-names;
+                current-index <=> AppState.active-index;
+                enabled: !AppState.job-active;
+                selected(value) => {
+                    Commands.select-strategy(value);
+                }
+            }
+            if !AppState.has-bundle: Text {
+                text: "zapret ещё не скачан. Скачайте его в «Настройках» или через мастер первого запуска.";
+                wrap: word-wrap;
+            }
+            Text {
+                text: AppState.current-version == "" ? "" : "Версия zapret: " + AppState.current-version;
+                color: #808080;
+            }
+        }
+    }
+
+    GroupBox {
+        title: "Игровой режим";
+        VerticalLayout {
+            spacing: 6px;
+            ComboBox {
+                model: ["Выключен", "TCP и UDP", "Только TCP", "Только UDP"];
+                current-index <=> AppState.game-filter;
+                selected => {
+                    Commands.set-game-filter(self.current-index);
+                }
+            }
+
+            Text {
+                text: "Включайте для онлайн-игр. Порты настраиваются в «Настройках».";
+                color: #808080;
+                wrap: word-wrap;
+            }
+        }
+    }
+}
