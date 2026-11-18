@@ -1,0 +1,23 @@
+zapret-gui uses or downloads the following third-party software.
+
+zapret-discord-youtube (strategies, lists, bundle) — Flowseal — MIT License
+  https://github.com/Flowseal/zapret-discord-youtube
+  Downloaded at runtime from GitHub; not shipped in this installer.
+
+zapret / winws — bol-van — MIT License
+  https://github.com/bol-van/zapret
+  Part of the downloaded zapret-discord-youtube bundle.
+
+WinDivert — basil00 — LGPL-3.0 (or GPL-2.0)
+  https://github.com/basil00/WinDivert
+  Part of the downloaded zapret-discord-youtube bundle.
+
+dpi-checkers (TCP 16-20 KB test suite) — hyperion-cs — Apache-2.0
+  https://github.com/hyperion-cs/dpi-checkers
+  The test host list is fetched at runtime.
+
+Slint — SixtyFPS GmbH — Slint Royalty-free Desktop, Mobile, and Web Applications License v2.0
+  https://slint.dev
+
+Rust crates (tokio, reqwest, serde, zip, tracing, tray-icon, interprocess, notify-rust, windows and their
+dependencies) — MIT and/or Apache-2.0 and compatible licenses. See each crate's license on crates.io.

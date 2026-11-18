@@ -1,0 +1,2 @@
+# Upstream fixtures are kept byte-for-byte (CRLF).
+core/tests/fixtures/** -text

@@ -1,0 +1,89 @@
+import { Button, ListView, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+
+export component StrategiesPage inherits VerticalBox {
+    Text {
+        text: AppState.current-version == "" ? "zapret не скачан" : "Стратегии из zapret " + AppState.current-version;
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    Text {
+        text: "Во время подбора интернет несколько раз ненадолго пропадает: стратегии перезапускаются по очереди.";
+        wrap: word-wrap;
+        color: #808080;
+    }
+
+    HorizontalLayout {
+        spacing: 8px;
+        alignment: start;
+        Button {
+            text: "Быстрый подбор";
+            enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+            clicked => {
+                Commands.run-scan(false);
+            }
+        }
+
+        Button {
+            text: "Полный подбор";
+            enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+            clicked => {
+                Commands.run-scan(true);
+            }
+        }
+    }
+
+    if AppState.scan-summary != "": Text {
+        text: AppState.scan-summary;
+        wrap: word-wrap;
+    }
+
+    ListView {
+        vertical-stretch: 1;
+        for row in AppState.strategies: HorizontalLayout {
+            padding: 6px;
+            spacing: 8px;
+            VerticalLayout {
+                horizontal-stretch: 1;
+                Text {
+                    text: (row.active ? "● " : "") + row.name;
+                    font-weight: row.active ? 700 : 400;
+                }
+
+                Text {
+                    text: row.status;
+                    wrap: word-wrap;
+                }
+
+                if row.details != "": Text {
+                    text: row.details;
+                    color: #808080;
+                    wrap: word-wrap;
+                }
+            }
+
+            VerticalLayout {
+                alignment: center;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Button {
+                        text: "Включить";
+                        enabled: row.usable && !row.active && !AppState.job-active;
+                        clicked => {
+                            Commands.select-strategy(row.name);
+                        }
+                    }
+
+                    Button {
+                        text: "Проверить";
+                        enabled: row.usable && AppState.elevated && !AppState.job-active;
+                        clicked => {
+                            Commands.test-strategy(row.name);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
