@@ -1,0 +1,123 @@
+// Thin bar at the bottom: connection details on the left, versions on the right.
+import { Palette } from "std-widgets.slint";
+import { AppState } from "globals.slint";
+import { Icon, Theme } from "components.slint";
+
+component StatusItem inherits HorizontalLayout {
+    in property <image> icon;
+    in property <string> text;
+    in property <brush> color: Theme.muted;
+    in property <length> max-text-width: 360px;
+    // Only long, low-priority texts may be cut; the rest keep their full width.
+    in property <bool> can-elide;
+    spacing: 5px;
+    horizontal-stretch: 0;
+
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: root.icon;
+            size: 13px;
+            colorize: root.color;
+        }
+    }
+
+    Text {
+        text: root.text;
+        color: root.color;
+        font-size: Theme.font-small;
+        vertical-alignment: center;
+        overflow: elide;
+        max-width: root.max-text-width;
+        min-width: root.can-elide ? 0 : self.preferred-width;
+        horizontal-stretch: 0;
+    }
+}
+
+export component StatusBar inherits Rectangle {
+    // Same colors as the tray icon: running / starting / error / stopped.
+    property <color> state-color: AppState.run-state == 2 ? (AppState.watchdog-state == 3 ? Theme.error : Theme.ok) : AppState.run-state == 1 ? Theme.warn : AppState.run-state == 3 ? Theme.error : #8a8a8a;
+    property <string> state-text: AppState.run-state == 2 ? (AppState.watchdog-state == 3 ? "Соединение потеряно" : "Обход включён") : AppState.run-state == 1 ? "Запуск…" : AppState.run-state == 3 ? "Ошибка" : "Обход выключен";
+    property <[string]> game-modes: ["", "TCP и UDP", "TCP", "UDP"];
+
+    height: 28px;
+    background: Palette.alternate-background;
+
+    Rectangle {
+        y: 0;
+        height: 1px;
+        background: Palette.border;
+    }
+
+    HorizontalLayout {
+        padding-left: 12px;
+        padding-right: 12px;
+        spacing: 14px;
+
+        HorizontalLayout {
+            spacing: 6px;
+            horizontal-stretch: 0;
+            VerticalLayout {
+                alignment: center;
+                Rectangle {
+                    width: 8px;
+                    height: 8px;
+                    border-radius: 4px;
+                    background: root.state-color;
+                }
+            }
+
+            Text {
+                text: root.state-text;
+                font-size: Theme.font-small;
+                font-weight: 600;
+                color: root.state-color;
+                vertical-alignment: center;
+            }
+        }
+
+        if AppState.active-strategy != "": StatusItem {
+            icon: @image-url("icons/layers.svg");
+            text: AppState.active-strategy;
+            max-text-width: 240px;
+            can-elide: true;
+        }
+        if AppState.game-filter != 0: StatusItem {
+            icon: @image-url("icons/gamepad-2.svg");
+            text: "Игры: " + root.game-modes[AppState.game-filter];
+            can-elide: true;
+        }
+        if AppState.watchdog-state != 0: StatusItem {
+            icon: AppState.watchdog-state == 3 ? @image-url("icons/shield-off.svg") : @image-url("icons/shield-check.svg");
+            text: AppState.watchdog-state == 1 ? "Сторож: ждёт проверки" : AppState.watchdog-state == 2 ? "Сторож: всё работает" : "Сторож: сбой";
+            color: AppState.watchdog-state == 3 ? Theme.error : Theme.muted;
+            can-elide: true;
+        }
+        if AppState.job-active: StatusItem {
+            icon: @image-url("icons/refresh-cw.svg");
+            text: AppState.job-text;
+            max-text-width: 240px;
+            can-elide: true;
+        }
+
+        Rectangle {
+            horizontal-stretch: 1;
+        }
+
+        if AppState.update-available != "": StatusItem {
+            icon: @image-url("icons/download.svg");
+            text: "Доступна " + AppState.update-available;
+            can-elide: true;
+            color: Palette.accent-background;
+        }
+        StatusItem {
+            icon: @image-url("icons/tag.svg");
+            text: AppState.current-version == "" ? "zapret не скачан" : "zapret " + AppState.current-version + (AppState.pinned ? " (закреплена)" : "");
+        }
+
+        StatusItem {
+            icon: @image-url("icons/info.svg");
+            text: "zapret-gui " + AppState.app-version + (AppState.is-mock ? " · имитация" : "");
+        }
+    }
+}

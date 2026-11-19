@@ -27,10 +27,16 @@ export global AppState {
     // 0 stopped, 1 starting, 2 running, 3 error
     in property <int> run-state;
     in property <string> status-text;
+    // Name of the active strategy, empty when none.
+    in property <string> active-strategy;
+    // Average ping of the active strategy's last test, e.g. "~45 мс"; empty when unknown.
+    in property <string> active-ping;
     in property <string> error-text;
     in property <string> error-tail;
     in property <bool> has-bundle;
     in property <string> current-version;
+    // The current zapret version was picked by hand: updates don't switch away from it.
+    in property <bool> pinned;
     in property <string> update-available;
     in property <[string]> strategy-names;
     in-out property <int> active-index: -1;
@@ -58,6 +64,8 @@ export global AppState {
     // -1 = unknown
     in property <float> job-progress: -1;
     in property <string> watchdog-text;
+    // 0 off, 1 no checks yet, 2 last check ok, 3 last check failed
+    in property <int> watchdog-state;
     // 0 system, 1 light, 2 dark
     in-out property <int> theme;
     in-out property <bool> autostart;

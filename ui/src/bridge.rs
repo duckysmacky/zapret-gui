@@ -266,6 +266,30 @@ pub fn watchdog_text(state: &CoreState, now: u64) -> String {
     }
 }
 
+/// 0 off, 1 no checks yet, 2 last check ok, 3 last check failed.
+pub fn watchdog_state(state: &CoreState) -> i32 {
+    if !state.settings.watchdog_enabled {
+        return 0;
+    }
+    match state.watchdog.last_ok {
+        None => 1,
+        Some(true) => 2,
+        Some(false) => 3,
+    }
+}
+
+/// Average ping from the active strategy's last test, e.g. "~45 мс".
+pub fn active_ping(state: &CoreState) -> String {
+    state
+        .active_strategy
+        .as_ref()
+        .and_then(|active| state.strategies.iter().find(|s| &s.name == active))
+        .and_then(|strategy| strategy.result.as_ref())
+        .and_then(|result| result.avg_ping_ms)
+        .map(|ping| format!("~{ping} мс"))
+        .unwrap_or_default()
+}
+
 pub fn game_filter_index(mode: GameFilterMode) -> i32 {
     match mode {
         GameFilterMode::Off => 0,
@@ -336,6 +360,9 @@ pub fn apply(ui: &MainWindow, state: &CoreState) {
         RunState::Error => 3,
     });
     global.set_status_text(status_text(state).into());
+    global.set_active_strategy(state.active_strategy.clone().unwrap_or_default().into());
+    global.set_active_ping(active_ping(state).into());
+    global.set_pinned(state.pinned);
     global.set_error_text(
         state
             .error
@@ -430,6 +457,7 @@ pub fn apply(ui: &MainWindow, state: &CoreState) {
             .unwrap_or(-1.0),
     );
     global.set_watchdog_text(watchdog_text(state, now).into());
+    global.set_watchdog_state(watchdog_state(state));
 
     let settings = &state.settings;
     global.set_theme(theme_index(settings.theme));
@@ -583,6 +611,7 @@ mod tests {
             "Не открылись: Discord; пинг ~20 мс"
         );
         assert!(!rows[2].usable);
+        assert_eq!(active_ping(&state), "~20 мс");
 
         let (labels, tags, deletable, index) = versions(&state);
         assert_eq!(
@@ -627,5 +656,17 @@ mod tests {
         }
         assert_eq!(ago(0, 30), "только что");
         assert_eq!(ago(0, 7200), "2 ч назад");
+    }
+
+    #[test]
+    fn watchdog_states() {
+        let mut state = state();
+        assert_eq!(watchdog_state(&state), 0);
+        state.settings.watchdog_enabled = true;
+        assert_eq!(watchdog_state(&state), 1);
+        state.watchdog.last_ok = Some(true);
+        assert_eq!(watchdog_state(&state), 2);
+        state.watchdog.last_ok = Some(false);
+        assert_eq!(watchdog_state(&state), 3);
     }
 }
