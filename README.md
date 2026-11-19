@@ -44,6 +44,7 @@
 - [WinDivert](https://github.com/basil00/WinDivert) — драйвер перехвата пакетов (LGPL-3.0)
 - [hyperion-cs/dpi-checkers](https://github.com/hyperion-cs/dpi-checkers) — набор DPI-проверок (Apache-2.0)
 - [Slint](https://slint.dev) — интерфейс
+- [Lucide](https://lucide.dev) — иконки (ISC)
 
 Лицензия: MIT.
 

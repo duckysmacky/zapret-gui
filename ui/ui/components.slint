@@ -1,0 +1,144 @@
+// Shared look: theme tokens and small building blocks used by every page.
+import { Palette } from "std-widgets.slint";
+
+export global Theme {
+    // Status colors, readable on both light and dark backgrounds.
+    out property <color> ok: #16a34a;
+    out property <color> warn: #d97706;
+    out property <color> error: #dc2626;
+    out property <brush> muted: Palette.foreground.transparentize(0.4);
+    out property <brush> card: Palette.foreground.transparentize(0.965);
+    out property <brush> card-border: Palette.foreground.transparentize(0.9);
+    out property <brush> hover: Palette.foreground.transparentize(0.94);
+    out property <length> radius: 8px;
+    out property <length> font-small: 12px;
+    out property <length> font-title: 15px;
+    out property <length> font-heading: 22px;
+}
+
+// A monochrome Lucide icon, tinted with `colorize`.
+export component Icon inherits Image {
+    in property <length> size: 18px;
+    width: root.size;
+    height: root.size;
+    colorize: Palette.foreground;
+}
+
+// A rounded panel. Children go into a padded vertical layout.
+export component Card inherits Rectangle {
+    in property <length> inner-padding: 16px;
+    in property <length> inner-spacing: 12px;
+    background: Theme.card;
+    border-radius: Theme.radius;
+    border-width: 1px;
+    border-color: Theme.card-border;
+
+    VerticalLayout {
+        padding: root.inner-padding;
+        spacing: root.inner-spacing;
+        @children
+    }
+}
+
+// Icon badge + title + description; extra children (a Switch, a button) go to the right.
+export component CardHeader inherits HorizontalLayout {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> description;
+    in property <color> accent: Palette.accent-background;
+    spacing: 12px;
+
+    VerticalLayout {
+        alignment: start;
+        Rectangle {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: root.accent.transparentize(0.85);
+            Icon {
+                source: root.icon;
+                colorize: root.accent;
+                size: 20px;
+            }
+        }
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        alignment: center;
+        spacing: 2px;
+        Text {
+            text: root.title;
+            font-size: Theme.font-title;
+            font-weight: 600;
+            wrap: word-wrap;
+        }
+
+        if root.description != "": Text {
+            text: root.description;
+            color: Theme.muted;
+            wrap: word-wrap;
+        }
+    }
+
+    @children
+}
+
+// Title row at the top of a page.
+export component PageHeader inherits HorizontalLayout {
+    in property <image> icon;
+    in property <string> title;
+    in property <string> subtitle;
+    spacing: 12px;
+    padding-bottom: 4px;
+
+    VerticalLayout {
+        alignment: center;
+        Icon {
+            source: root.icon;
+            size: 26px;
+            colorize: Palette.accent-background;
+        }
+    }
+
+    VerticalLayout {
+        horizontal-stretch: 1;
+        spacing: 2px;
+        Text {
+            text: root.title;
+            font-size: Theme.font-heading;
+            font-weight: 600;
+        }
+
+        if root.subtitle != "": Text {
+            text: root.subtitle;
+            color: Theme.muted;
+            wrap: word-wrap;
+        }
+    }
+}
+
+// A colored banner with an icon (admin warning, messages, errors).
+export component Banner inherits Rectangle {
+    in property <image> icon;
+    in property <color> accent: Palette.accent-background;
+    background: root.accent.transparentize(0.88);
+    border-radius: Theme.radius;
+    border-width: 1px;
+    border-color: root.accent.transparentize(0.6);
+
+    HorizontalLayout {
+        padding: 10px;
+        padding-left: 12px;
+        spacing: 10px;
+        VerticalLayout {
+            alignment: center;
+            Icon {
+                source: root.icon;
+                colorize: root.accent;
+            }
+        }
+
+        @children
+    }
+}
