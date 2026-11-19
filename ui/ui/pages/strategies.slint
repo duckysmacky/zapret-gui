@@ -1,17 +1,12 @@
-import { Button, ListView, VerticalBox } from "std-widgets.slint";
+import { Button, ListView, VerticalBox, Palette } from "std-widgets.slint";
 import { AppState, Commands } from "../globals.slint";
+import { Icon, PageHeader, Theme } from "../components.slint";
 
 export component StrategiesPage inherits VerticalBox {
-    Text {
-        text: AppState.current-version == "" ? "zapret не скачан" : "Стратегии из zapret " + AppState.current-version;
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    Text {
-        text: "Во время подбора интернет несколько раз ненадолго пропадает: стратегии перезапускаются по очереди.";
-        wrap: word-wrap;
-        color: #808080;
+    PageHeader {
+        icon: @image-url("../icons/layers.svg");
+        title: "Стратегии";
+        subtitle: AppState.current-version == "" ? "zapret не скачан" : "Из zapret " + AppState.current-version + ". Во время подбора интернет несколько раз ненадолго пропадает: стратегии перезапускаются по очереди.";
     }
 
     HorizontalLayout {
@@ -19,6 +14,9 @@ export component StrategiesPage inherits VerticalBox {
         alignment: start;
         Button {
             text: "Быстрый подбор";
+            icon: @image-url("../icons/wand-sparkles.svg");
+            colorize-icon: true;
+            primary: true;
             enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
             clicked => {
                 Commands.run-scan(false);
@@ -27,6 +25,8 @@ export component StrategiesPage inherits VerticalBox {
 
         Button {
             text: "Полный подбор";
+            icon: @image-url("../icons/list.svg");
+            colorize-icon: true;
             enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
             clicked => {
                 Commands.run-scan(true);
@@ -36,50 +36,96 @@ export component StrategiesPage inherits VerticalBox {
 
     if AppState.scan-summary != "": Text {
         text: AppState.scan-summary;
+        color: Theme.muted;
         wrap: word-wrap;
     }
 
     ListView {
         vertical-stretch: 1;
-        for row in AppState.strategies: HorizontalLayout {
-            padding: 6px;
-            spacing: 8px;
-            VerticalLayout {
-                horizontal-stretch: 1;
-                Text {
-                    text: (row.active ? "● " : "") + row.name;
-                    font-weight: row.active ? 700 : 400;
-                }
+        for row in AppState.strategies: VerticalLayout {
+            padding-bottom: 8px;
+            padding-right: 12px;
+            Rectangle {
+                background: row.active ? Palette.accent-background.transparentize(0.9) : Theme.card;
+                border-radius: Theme.radius;
+                border-width: 1px;
+                border-color: row.active ? Palette.accent-background.transparentize(0.5) : Theme.card-border;
 
-                Text {
-                    text: row.status;
-                    wrap: word-wrap;
-                }
-
-                if row.details != "": Text {
-                    text: row.details;
-                    color: #808080;
-                    wrap: word-wrap;
-                }
-            }
-
-            VerticalLayout {
-                alignment: center;
                 HorizontalLayout {
-                    spacing: 8px;
-                    Button {
-                        text: "Включить";
-                        enabled: row.usable && !row.active && !AppState.job-active;
-                        clicked => {
-                            Commands.select-strategy(row.name);
+                    padding: 12px;
+                    spacing: 12px;
+                    VerticalLayout {
+                        alignment: start;
+                        padding-top: 1px;
+                        Icon {
+                            source: !row.usable ? @image-url("../icons/circle-alert.svg") : row.active ? @image-url("../icons/zap.svg") : @image-url("../icons/layers.svg");
+                            colorize: !row.usable ? Theme.error : row.active ? Palette.accent-background : Theme.muted;
                         }
                     }
 
-                    Button {
-                        text: "Проверить";
-                        enabled: row.usable && AppState.elevated && !AppState.job-active;
-                        clicked => {
-                            Commands.test-strategy(row.name);
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 2px;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Text {
+                                text: row.name;
+                                font-weight: 600;
+                                horizontal-stretch: 0;
+                            }
+
+                            if row.active: VerticalLayout {
+                                alignment: center;
+                                Rectangle {
+                                    border-radius: 4px;
+                                    background: Palette.accent-background;
+                                    HorizontalLayout {
+                                        padding-left: 6px;
+                                        padding-right: 6px;
+                                        Text {
+                                            text: "активна";
+                                            font-size: 11px;
+                                            color: Palette.accent-foreground;
+                                        }
+                                    }
+                                }
+                            }
+                            Rectangle {
+                                horizontal-stretch: 1;
+                            }
+                        }
+
+                        Text {
+                            text: row.status;
+                            wrap: word-wrap;
+                        }
+
+                        if row.details != "": Text {
+                            text: row.details;
+                            color: Theme.muted;
+                            wrap: word-wrap;
+                        }
+                    }
+
+                    VerticalLayout {
+                        alignment: center;
+                        HorizontalLayout {
+                            spacing: 8px;
+                            Button {
+                                text: "Включить";
+                                enabled: row.usable && !row.active && !AppState.job-active;
+                                clicked => {
+                                    Commands.select-strategy(row.name);
+                                }
+                            }
+
+                            Button {
+                                text: "Проверить";
+                                enabled: row.usable && AppState.elevated && !AppState.job-active;
+                                clicked => {
+                                    Commands.test-strategy(row.name);
+                                }
+                            }
                         }
                     }
                 }

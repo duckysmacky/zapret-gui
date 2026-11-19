@@ -1,34 +1,35 @@
-import { Button, ComboBox, GroupBox, LineEdit, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
+import { Button, ComboBox, LineEdit, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
 import { AppState, Commands } from "../globals.slint";
+import { Card, CardHeader, PageHeader, Theme } from "../components.slint";
 
-component UserList inherits GroupBox {
+component UserList inherits Card {
+    in property <image> icon;
+    in property <string> title;
     in property <int> kind;
     in property <string> hint;
     in-out property <string> entries;
 
-    VerticalLayout {
-        spacing: 6px;
-        Text {
-            text: root.hint;
-            color: #808080;
-            wrap: word-wrap;
-        }
-
-        TextEdit {
-            text <=> root.entries;
-            min-height: 90px;
-            wrap: no-wrap;
-        }
-
-        HorizontalLayout {
-            alignment: start;
+    CardHeader {
+        icon: root.icon;
+        title: root.title;
+        description: root.hint;
+        VerticalLayout {
+            alignment: center;
             Button {
                 text: "Сохранить";
+                icon: @image-url("../icons/check.svg");
+                colorize-icon: true;
                 clicked => {
                     Commands.save-list(root.kind, root.entries);
                 }
             }
         }
+    }
+
+    TextEdit {
+        text <=> root.entries;
+        min-height: 90px;
+        wrap: no-wrap;
     }
 }
 
@@ -38,19 +39,22 @@ export component ListsPage inherits ScrollView {
 
     VerticalBox {
         alignment: start;
-        Text {
-            text: "По одной записи на строку. Можно вставить сразу много строк. Изменения применяются сразу (обход перезапустится).";
-            wrap: word-wrap;
+        spacing: 12px;
+        PageHeader {
+            icon: @image-url("../icons/list.svg");
+            title: "Списки";
+            subtitle: "По одной записи на строку. Можно вставить сразу много строк. Изменения применяются сразу (обход перезапустится).";
         }
 
         UserList {
+            icon: @image-url("../icons/zap.svg");
             title: "Свои домены для обхода";
             hint: "Например: example.com";
-            kind: 0;
             entries <=> AppState.list-general;
         }
 
         UserList {
+            icon: @image-url("../icons/x.svg");
             title: "Исключённые домены";
             hint: "Эти сайты будут открываться без обхода.";
             kind: 1;
@@ -58,53 +62,56 @@ export component ListsPage inherits ScrollView {
         }
 
         UserList {
+            icon: @image-url("../icons/shield-off.svg");
             title: "Исключённые IP и подсети";
             hint: "Например: 192.168.0.0/16 или 1.2.3.4";
             kind: 2;
             entries <=> AppState.list-ipset-exclude;
         }
 
-        GroupBox {
-            title: "Режим IPSet";
-            VerticalLayout {
-                spacing: 6px;
-                ComboBox {
-                    model: ["none: выключен", "loaded: по списку (по умолчанию)", "any: все IP-адреса"];
-                    current-index <=> AppState.ipset-mode;
-                    selected => {
-                        Commands.set-ipset-mode(self.current-index);
-                    }
-                }
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/settings.svg");
+                title: "Режим IPSet";
+                description: AppState.ipset-list-updated ? "Используется обновлённый список" : "Используется список из версии zapret";
+            }
 
-                if AppState.ipset-mode == 2: Text {
-                    text: "Внимание: в режиме any многие сайты могут перестать открываться.";
-                    color: #c42b1c;
-                    wrap: word-wrap;
+            ComboBox {
+                model: ["none: выключен", "loaded: по списку (по умолчанию)", "any: все IP-адреса"];
+                current-index <=> AppState.ipset-mode;
+                selected => {
+                    Commands.set-ipset-mode(self.current-index);
                 }
-                HorizontalLayout {
-                    spacing: 8px;
-                    alignment: start;
-                    Button {
-                        text: "Обновить список IPSet";
-                        enabled: AppState.elevated;
-                        clicked => {
-                            Commands.update-ipset-list();
-                        }
-                    }
+            }
 
-                    Text {
-                        vertical-alignment: center;
-                        text: AppState.ipset-list-updated ? "Используется обновлённый список" : "Используется список из версии zapret";
-                        color: #808080;
+            if AppState.ipset-mode == 2: Text {
+                text: "Внимание: в режиме any многие сайты могут перестать открываться.";
+                color: Theme.error;
+                wrap: word-wrap;
+            }
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Обновить список IPSet";
+                    icon: @image-url("../icons/refresh-cw.svg");
+                    colorize-icon: true;
+                    enabled: AppState.elevated;
+                    clicked => {
+                        Commands.update-ipset-list();
                     }
                 }
             }
         }
 
-        GroupBox {
-            title: "Списки zapret (только просмотр)";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/layers.svg");
+                title: "Списки zapret";
+                description: "Только просмотр.";
+            }
+
             VerticalLayout {
-                spacing: 6px;
+                spacing: 8px;
                 HorizontalLayout {
                     spacing: 8px;
                     ComboBox {

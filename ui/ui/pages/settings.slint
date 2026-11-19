@@ -1,11 +1,22 @@
-import { AboutSlint, Button, ComboBox, GroupBox, LineEdit, ScrollView, SpinBox, Switch, VerticalBox } from "std-widgets.slint";
+import { AboutSlint, Button, ComboBox, LineEdit, ScrollView, SpinBox, Switch, VerticalBox } from "std-widgets.slint";
 import { AppState, Commands, Dialog } from "../globals.slint";
+import { Card, CardHeader, PageHeader, Theme } from "../components.slint";
 
 export component SettingsPage inherits ScrollView {
     VerticalBox {
         alignment: start;
-        GroupBox {
-            title: "Общие";
+        spacing: 12px;
+        PageHeader {
+            icon: @image-url("../icons/settings.svg");
+            title: "Настройки";
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/settings.svg");
+                title: "Общие";
+            }
+
             VerticalLayout {
                 spacing: 8px;
                 HorizontalLayout {
@@ -43,15 +54,15 @@ export component SettingsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "Сторож";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/shield-check.svg");
+                title: "Сторож соединения";
+                description: "Периодически проверяет, что Discord и YouTube открываются, и сообщает, если стратегия перестала работать.";
+            }
+
             VerticalLayout {
                 spacing: 8px;
-                Text {
-                    text: "Периодически проверяет, что Discord и YouTube открываются, и сообщает, если стратегия перестала работать.";
-                    wrap: word-wrap;
-                    color: #808080;
-                }
 
                 Switch {
                     text: "Включить сторожа";
@@ -88,8 +99,12 @@ export component SettingsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "Версия zapret";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/tag.svg");
+                title: "Версия zapret";
+            }
+
             VerticalLayout {
                 spacing: 8px;
                 Text {
@@ -145,13 +160,17 @@ export component SettingsPage inherits ScrollView {
                 Text {
                     text: "Выбор старой версии закрепляет её: обновления не переключат zapret сами.";
                     wrap: word-wrap;
-                    color: #808080;
+                    color: Theme.muted;
                 }
             }
         }
 
-        GroupBox {
-            title: "Порты игрового режима";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/gamepad-2.svg");
+                title: "Порты игрового режима";
+            }
+
             VerticalLayout {
                 spacing: 8px;
                 HorizontalLayout {
@@ -184,13 +203,17 @@ export component SettingsPage inherits ScrollView {
 
                 Text {
                     text: "Например: 1024-65535 или 1024-1934,1936-65535";
-                    color: #808080;
+                    color: Theme.muted;
                 }
             }
         }
 
-        if AppState.fakes-supported: GroupBox {
-            title: "Фейковые пакеты";
+        if AppState.fakes-supported: Card {
+            CardHeader {
+                icon: @image-url("../icons/zap.svg");
+                title: "Фейковые пакеты";
+            }
+
             VerticalLayout {
                 spacing: 8px;
                 HorizontalLayout {
@@ -231,8 +254,12 @@ export component SettingsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "О программе";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/info.svg");
+                title: "О программе";
+            }
+
             VerticalLayout {
                 spacing: 6px;
                 Text {
@@ -248,7 +275,7 @@ export component SettingsPage inherits ScrollView {
                 Text {
                     text: "Использует: zapret-discord-youtube (Flowseal, MIT), zapret / winws (bol-van, MIT), WinDivert (basil00, LGPL-3.0), проверки DPI dpi-checkers (hyperion-cs, Apache-2.0), иконки Lucide (ISC). Лицензия программы: MIT.";
                     wrap: word-wrap;
-                    color: #808080;
+                    color: Theme.muted;
                 }
 
                 AboutSlint {

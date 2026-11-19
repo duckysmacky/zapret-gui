@@ -1,33 +1,50 @@
-import { Button, ComboBox, GroupBox, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
+import { Button, ComboBox, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
 import { AppState, Commands, Dialog } from "../globals.slint";
+import { Card, CardHeader, Icon, PageHeader, Theme } from "../components.slint";
 
 export component DiagnosticsPage inherits ScrollView {
     property <int> test-scope;
 
     VerticalBox {
         alignment: start;
-        GroupBox {
-            title: "Проверки системы";
-            VerticalLayout {
-                spacing: 6px;
-                HorizontalLayout {
-                    alignment: start;
+        spacing: 12px;
+        PageHeader {
+            icon: @image-url("../icons/stethoscope.svg");
+            title: "Диагностика";
+            subtitle: "Проверки системы, тесты стратегий и журнал.";
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/circle-check.svg");
+                title: "Проверки системы";
+                description: "Проверки из service.bat: что может мешать обходу и как это исправить.";
+                VerticalLayout {
+                    alignment: center;
                     Button {
                         text: "Запустить проверки";
+                        icon: @image-url("../icons/refresh-cw.svg");
+                        colorize-icon: true;
+                        primary: true;
                         enabled: !AppState.job-active;
                         clicked => {
                             Commands.run-diagnostics();
                         }
                     }
                 }
+            }
+
+            VerticalLayout {
+                spacing: 10px;
 
                 for check in AppState.checks: HorizontalLayout {
                     spacing: 8px;
-                    Text {
-                        text: check.status == 0 ? "✓" : check.status == 1 ? "!" : "✕";
-                        color: check.status == 0 ? #0f7b0f : check.status == 1 ? #9d5d00 : #c42b1c;
-                        font-weight: 700;
-                        min-width: 16px;
+                    VerticalLayout {
+                        alignment: start;
+                        Icon {
+                            source: check.status == 0 ? @image-url("../icons/circle-check.svg") : check.status == 1 ? @image-url("../icons/circle-alert.svg") : @image-url("../icons/triangle-alert.svg");
+                            colorize: check.status == 0 ? Theme.ok : check.status == 1 ? Theme.warn : Theme.error;
+                        }
                     }
 
                     VerticalLayout {
@@ -39,6 +56,7 @@ export component DiagnosticsPage inherits ScrollView {
 
                         Text {
                             text: check.detail;
+                            color: Theme.muted;
                             wrap: word-wrap;
                         }
                     }
@@ -58,15 +76,15 @@ export component DiagnosticsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "Тесты стратегий";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/activity.svg");
+                title: "Тесты стратегий";
+                description: "Стандартный тест проверяет сайты Discord, YouTube и другие. DPI-тест ищет «заморозку» соединения после 16–20 КБ. Во время теста интернет ненадолго пропадает.";
+            }
+
             VerticalLayout {
-                spacing: 6px;
-                Text {
-                    text: "Стандартный тест проверяет сайты Discord, YouTube и другие. DPI-тест ищет «заморозку» соединения после 16–20 КБ. Во время теста интернет ненадолго пропадает.";
-                    wrap: word-wrap;
-                    color: #808080;
-                }
+                spacing: 8px;
 
                 HorizontalLayout {
                     spacing: 8px;
@@ -102,10 +120,15 @@ export component DiagnosticsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "Действия";
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/wand-sparkles.svg");
+                title: "Действия";
+                description: "Службы zapret и WinDivert, кэш Discord, файл hosts.";
+            }
+
             VerticalLayout {
-                spacing: 6px;
+                spacing: 8px;
                 HorizontalLayout {
                     spacing: 8px;
                     alignment: start;
@@ -147,26 +170,30 @@ export component DiagnosticsPage inherits ScrollView {
             }
         }
 
-        GroupBox {
-            title: "Журнал";
-            VerticalLayout {
-                spacing: 6px;
-                TextEdit {
-                    text: AppState.logs;
-                    read-only: true;
-                    min-height: 240px;
-                    wrap: no-wrap;
-                    font-size: 11px;
-                }
-
-                HorizontalLayout {
-                    alignment: start;
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/list.svg");
+                title: "Журнал";
+                description: "Сообщения программы и winws.";
+                VerticalLayout {
+                    alignment: center;
                     Button {
                         text: "Отчёт для поддержки…";
                         clicked => {
                             Commands.open-report();
                         }
                     }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                TextEdit {
+                    text: AppState.logs;
+                    read-only: true;
+                    min-height: 240px;
+                    wrap: no-wrap;
+                    font-size: 11px;
                 }
             }
         }
