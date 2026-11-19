@@ -6,10 +6,10 @@ import { ListsPage } from "pages/lists.slint";
 import { DiagnosticsPage } from "pages/diagnostics.slint";
 import { SettingsPage } from "pages/settings.slint";
 import { Wizard } from "pages/wizard.slint";
+import { Sidebar } from "sidebar.slint";
 
 export { AppState, Commands, Dialog, StrategyRow, CheckRow }
 
-// Plainest functional layout: the owner designs the visuals later.
 export component MainWindow inherits Window {
     title: "zapret-gui";
     preferred-width: 960px;
@@ -19,7 +19,6 @@ export component MainWindow inherits Window {
     background: Palette.background;
 
     property <int> page;
-    property <[string]> pages: ["Главная", "Стратегии", "Списки", "Диагностика", "Настройки"];
 
     function apply-theme() {
         Palette.color-scheme = AppState.theme == 1 ? ColorScheme.light : AppState.theme == 2 ? ColorScheme.dark : ColorScheme.unknown;
@@ -33,26 +32,12 @@ export component MainWindow inherits Window {
     property <int> theme: AppState.theme;
 
     HorizontalLayout {
-        if !AppState.first-run: VerticalLayout {
-            width: 180px;
-            padding: 8px;
-            spacing: 4px;
-            for name[index] in root.pages: Button {
-                text: name;
-                primary: root.page == index;
-                clicked => {
-                    root.page = index;
-                }
-            }
-            Rectangle {
-                vertical-stretch: 1;
-            }
-
-            Text {
-                text: AppState.run-state == 2 ? "● Обход включён" : AppState.run-state == 3 ? "● Ошибка" : "○ Обход выключен";
-                color: AppState.run-state == 2 ? #0f7b0f : AppState.run-state == 3 ? #c42b1c : Palette.foreground;
-                wrap: word-wrap;
-            }
+        if !AppState.first-run: Sidebar {
+            page <=> root.page;
+        }
+        if !AppState.first-run: Rectangle {
+            width: 1px;
+            background: Palette.border;
         }
 
         VerticalLayout {

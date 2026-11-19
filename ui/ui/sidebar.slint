@@ -1,0 +1,184 @@
+// Left navigation: collapse button + logo on top, one icon + label item per section.
+import { Palette } from "std-widgets.slint";
+import { Icon, Theme } from "components.slint";
+
+component NavItem inherits Rectangle {
+    in property <image> icon;
+    in property <string> label;
+    in property <bool> active;
+    in property <bool> collapsed;
+    callback clicked();
+
+    height: 40px;
+    border-radius: Theme.radius;
+    clip: true;
+    // Hover shows the active tint at half strength.
+    background: root.active ? Palette.accent-background.transparentize(0.8) : touch.has-hover ? Palette.accent-background.transparentize(0.9) : transparent;
+    animate background { duration: 150ms; }
+
+    // Accent marker on the active item.
+    Rectangle {
+        x: 0;
+        y: (parent.height - self.height) / 2;
+        width: 3px;
+        height: root.active ? 18px : 0;
+        border-radius: 2px;
+        background: Palette.accent-background;
+        animate height { duration: 150ms; easing: ease-out; }
+    }
+
+    Icon {
+        x: 14px;
+        y: (parent.height - self.height) / 2;
+        size: 20px;
+        source: root.icon;
+        colorize: root.active ? Palette.accent-background : Palette.foreground;
+    }
+
+    Text {
+        x: 46px;
+        y: (parent.height - self.height) / 2;
+        text: root.label;
+        font-weight: root.active ? 600 : 400;
+        opacity: root.collapsed ? 0 : 1;
+        animate opacity { duration: 150ms; }
+    }
+
+    touch := TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component Sidebar inherits Rectangle {
+    in-out property <int> page;
+    in-out property <bool> collapsed;
+
+    width: root.collapsed ? 64px : 220px;
+    animate width { duration: 180ms; easing: ease-out; }
+    clip: true;
+
+    VerticalLayout {
+        padding: 8px;
+        spacing: 4px;
+
+        // Collapse button + logo.
+        Rectangle {
+            height: 48px;
+            toggle := Rectangle {
+                x: 2px;
+                y: (parent.height - self.height) / 2;
+                width: 40px;
+                height: 36px;
+                border-radius: Theme.radius;
+                background: toggle-touch.has-hover ? Theme.hover : transparent;
+                animate background { duration: 150ms; }
+                Icon {
+                    source: @image-url("icons/panel-left.svg");
+                    size: 20px;
+                }
+
+                toggle-touch := TouchArea {
+                    mouse-cursor: pointer;
+                    clicked => {
+                        root.collapsed = !root.collapsed;
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                x: 54px;
+                spacing: 6px;
+                alignment: start;
+                opacity: root.collapsed ? 0 : 1;
+                animate opacity { duration: 150ms; }
+                Text {
+                    text: "Zapret";
+                    font-size: 19px;
+                    font-weight: 800;
+                    vertical-alignment: center;
+                }
+
+                VerticalLayout {
+                    alignment: center;
+                    Rectangle {
+                        border-radius: 5px;
+                        background: Palette.accent-background;
+                        HorizontalLayout {
+                            padding-left: 6px;
+                            padding-right: 6px;
+                            padding-top: 1px;
+                            padding-bottom: 1px;
+                            Text {
+                                text: "GUI";
+                                font-size: 13px;
+                                font-weight: 800;
+                                color: Palette.accent-foreground;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Rectangle {
+            height: 8px;
+        }
+
+        NavItem {
+            icon: @image-url("icons/house.svg");
+            label: "Главная";
+            active: root.page == 0;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 0;
+            }
+        }
+
+        NavItem {
+            icon: @image-url("icons/layers.svg");
+            label: "Стратегии";
+            active: root.page == 1;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 1;
+            }
+        }
+
+        NavItem {
+            icon: @image-url("icons/list.svg");
+            label: "Списки";
+            active: root.page == 2;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 2;
+            }
+        }
+
+        NavItem {
+            icon: @image-url("icons/stethoscope.svg");
+            label: "Диагностика";
+            active: root.page == 3;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 3;
+            }
+        }
+
+        NavItem {
+            icon: @image-url("icons/settings.svg");
+            label: "Настройки";
+            active: root.page == 4;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 4;
+            }
+        }
+
+        Rectangle {
+            vertical-stretch: 1;
+        }
+    }
+}
