@@ -5,6 +5,7 @@ import { UlianaHomePage } from "pages/uliana_home.slint";
 import { StrategiesPage } from "pages/strategies.slint";
 import { ListsPage } from "pages/lists.slint";
 import { DiagnosticsPage } from "pages/diagnostics.slint";
+import { GuidePage } from "pages/guide.slint";
 import { SettingsPage } from "pages/settings.slint";
 import { Wizard } from "pages/wizard.slint";
 import { Sidebar } from "sidebar.slint";
@@ -130,7 +131,10 @@ export component MainWindow inherits Window {
                 if !AppState.first-run && root.page == 3: DiagnosticsPage {
                     vertical-stretch: 1;
                 }
-                if !AppState.first-run && root.page == 4: SettingsPage {
+                if !AppState.first-run && root.page == 4: GuidePage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 5: SettingsPage {
                     vertical-stretch: 1;
                 }
             }

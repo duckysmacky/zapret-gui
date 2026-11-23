@@ -169,12 +169,22 @@ export component Sidebar inherits Rectangle {
         }
 
         NavItem {
-            icon: @image-url("icons/settings.svg");
-            label: "Настройки";
+            icon: @image-url("icons/book-open.svg");
+            label: AppState.uliana ? "Как пользоваться" : "Руководство";
             active: root.page == 4;
             collapsed: root.collapsed;
             clicked => {
                 root.page = 4;
+            }
+        }
+
+        NavItem {
+            icon: @image-url("icons/settings.svg");
+            label: "Настройки";
+            active: root.page == 5;
+            collapsed: root.collapsed;
+            clicked => {
+                root.page = 5;
             }
         }
 
