@@ -36,12 +36,9 @@ window lifecycle. Read the root `AGENTS.md` first; this file only adds UI-specif
   winit pumps messages (compiles for Windows; check in the VM).* On Linux the tray is stubbed (D30).
 - Tray icon/color and status line come from `AppState`. Menu items call the same core commands as the window.
 
-### Theme and Uliana skin
+### Theme
 - Theme: system/light/dark. Switch light/dark at runtime through `Palette.color-scheme` (verified in Slint 1.19;
   `ColorScheme.unknown` = follow the system).
-- Uliana: a separate root window component bound to the same globals, chosen at startup from the mode core reports
-  (`ULIANA_MODE`, D24). The pettable cat uses Slint animations + `TouchArea` with original pixel-art images.
-- No feature exists only in Uliana mode.
 
 ### Rendering and licensing
 - Make sure the app renders in a VM without GPU acceleration. Fall back to the software renderer if needed

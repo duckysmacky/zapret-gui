@@ -1,6 +1,7 @@
 import { Button, ProgressIndicator, TextEdit, Palette, VerticalBox } from "std-widgets.slint";
 import { AppState, Commands, Dialog, StrategyRow, CheckRow } from "globals.slint";
 import { HomePage } from "pages/home.slint";
+import { UlianaHomePage } from "pages/uliana_home.slint";
 import { StrategiesPage } from "pages/strategies.slint";
 import { ListsPage } from "pages/lists.slint";
 import { DiagnosticsPage } from "pages/diagnostics.slint";
@@ -18,12 +19,12 @@ export component MainWindow inherits Window {
     preferred-height: 720px;
     min-width: 640px;
     min-height: 480px;
-    background: Palette.background;
+    background: Theme.background;
 
     property <int> page;
 
     function apply-theme() {
-        Palette.color-scheme = AppState.theme == 1 ? ColorScheme.light : AppState.theme == 2 ? ColorScheme.dark : ColorScheme.unknown;
+        Palette.color-scheme = root.theme == 1 ? ColorScheme.light : root.theme == 2 ? ColorScheme.dark : ColorScheme.unknown;
     }
     init => {
         root.apply-theme();
@@ -31,7 +32,8 @@ export component MainWindow inherits Window {
     changed theme => {
         root.apply-theme();
     }
-    property <int> theme: AppState.theme;
+    // The Uliana pink theme is light only.
+    property <int> theme: AppState.uliana ? 1 : AppState.theme;
 
     VerticalLayout {
         HorizontalLayout {
@@ -41,7 +43,7 @@ export component MainWindow inherits Window {
             }
             if !AppState.first-run: Rectangle {
                 width: 1px;
-                background: Palette.border;
+                background: Theme.border;
             }
 
             VerticalLayout {
@@ -113,7 +115,10 @@ export component MainWindow inherits Window {
                 if AppState.first-run: Wizard {
                     vertical-stretch: 1;
                 }
-                if !AppState.first-run && root.page == 0: HomePage {
+                if !AppState.first-run && root.page == 0 && AppState.uliana: UlianaHomePage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 0 && !AppState.uliana: HomePage {
                     vertical-stretch: 1;
                 }
                 if !AppState.first-run && root.page == 1: StrategiesPage {
@@ -142,10 +147,10 @@ export component MainWindow inherits Window {
         Rectangle {
             width: min(520px, root.width - 32px);
             height: dialog-layout.preferred-height;
-            background: Palette.background;
+            background: Theme.background;
             border-radius: 8px;
             border-width: 1px;
-            border-color: Palette.border;
+            border-color: Theme.border;
             dialog-layout := VerticalBox {
                 Text {
                     text: Dialog.title;
@@ -189,10 +194,10 @@ export component MainWindow inherits Window {
         Rectangle {
             width: root.width - 64px;
             height: root.height - 64px;
-            background: Palette.background;
+            background: Theme.background;
             border-radius: 8px;
             border-width: 1px;
-            border-color: Palette.border;
+            border-color: Theme.border;
             VerticalBox {
                 Text {
                     text: "Отчёт для поддержки";

@@ -2,6 +2,48 @@ import { Button, ComboBox, ScrollView, TextEdit, VerticalBox } from "std-widgets
 import { AppState, Commands, Dialog } from "../globals.slint";
 import { Card, CardHeader, Icon, PageHeader, Theme } from "../components.slint";
 
+// System checks with their fix buttons. Shared by the Diagnostics page and the Uliana home.
+export component ChecksList inherits VerticalLayout {
+    spacing: 10px;
+
+    for check in AppState.checks: HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            alignment: start;
+            Icon {
+                source: check.status == 0 ? @image-url("../icons/circle-check.svg") : check.status == 1 ? @image-url("../icons/circle-alert.svg") : @image-url("../icons/triangle-alert.svg");
+                colorize: check.status == 0 ? Theme.ok : check.status == 1 ? Theme.warn : Theme.error;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            Text {
+                text: check.title;
+                font-weight: 600;
+            }
+
+            Text {
+                text: check.detail;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+        }
+
+        if check.fix-label != "": Button {
+            text: check.fix-label;
+            enabled: AppState.elevated && !AppState.job-active;
+            clicked => {
+                if check.fix-confirm != "" {
+                    Dialog.ask(check.title, check.fix-confirm, "fix:" + check.fix-id, check.fix-label);
+                } else {
+                    Commands.apply-fix(check.fix-id);
+                }
+            }
+        }
+    }
+}
+
 export component DiagnosticsPage inherits ScrollView {
     property <int> test-scope;
 
@@ -34,46 +76,7 @@ export component DiagnosticsPage inherits ScrollView {
                 }
             }
 
-            VerticalLayout {
-                spacing: 10px;
-
-                for check in AppState.checks: HorizontalLayout {
-                    spacing: 8px;
-                    VerticalLayout {
-                        alignment: start;
-                        Icon {
-                            source: check.status == 0 ? @image-url("../icons/circle-check.svg") : check.status == 1 ? @image-url("../icons/circle-alert.svg") : @image-url("../icons/triangle-alert.svg");
-                            colorize: check.status == 0 ? Theme.ok : check.status == 1 ? Theme.warn : Theme.error;
-                        }
-                    }
-
-                    VerticalLayout {
-                        horizontal-stretch: 1;
-                        Text {
-                            text: check.title;
-                            font-weight: 600;
-                        }
-
-                        Text {
-                            text: check.detail;
-                            color: Theme.muted;
-                            wrap: word-wrap;
-                        }
-                    }
-
-                    if check.fix-label != "": Button {
-                        text: check.fix-label;
-                        enabled: AppState.elevated && !AppState.job-active;
-                        clicked => {
-                            if check.fix-confirm != "" {
-                                Dialog.ask(check.title, check.fix-confirm, "fix:" + check.fix-id, check.fix-label);
-                            } else {
-                                Commands.apply-fix(check.fix-id);
-                            }
-                        }
-                    }
-                }
-            }
+            ChecksList { }
         }
 
         Card {

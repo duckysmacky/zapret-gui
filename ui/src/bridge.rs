@@ -352,6 +352,7 @@ pub fn apply(ui: &MainWindow, state: &CoreState) {
     let global = ui.global::<AppState>();
 
     global.set_app_version(state.app_version.clone().into());
+    global.set_uliana(state.uliana_mode);
     global.set_elevated(state.elevated);
     global.set_run_state(match state.run_state {
         RunState::Stopped => 0,
@@ -592,6 +593,7 @@ mod tests {
             checks: vec![],
             hosts_backup_available: false,
             first_run: false,
+            uliana_mode: false,
         }
     }
 

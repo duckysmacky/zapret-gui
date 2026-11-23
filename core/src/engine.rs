@@ -16,7 +16,7 @@ use crate::prober::ProbeBackend;
 use crate::upstream::github::{self, Release};
 use crate::upstream::parser::Strategy;
 use crate::upstream::{UpstreamError, bundle};
-use crate::{diagnostics, hosts, lists, runner};
+use crate::{diagnostics, hosts, lists, runner, uliana};
 
 const OUTPUT_TAIL_LINES: usize = 20;
 const MAX_UPSTREAM_LIST_BYTES: u64 = 4 * 1024 * 1024;
@@ -94,6 +94,7 @@ pub struct Engine {
     pending_hosts: Mutex<Option<Vec<String>>>,
     pub(crate) shutting_down: AtomicBool,
     pub(crate) watchdog_kick: Notify,
+    uliana_mode: bool,
 }
 
 impl Engine {
@@ -104,6 +105,7 @@ impl Engine {
         events: broadcast::Sender<CoreEvent>,
     ) -> Self {
         let config = Config::load(&paths.config_file());
+        let uliana_mode = uliana::mode_enabled(platform.system.as_ref());
         Self {
             paths,
             system: platform.system,
@@ -124,6 +126,7 @@ impl Engine {
             pending_hosts: Mutex::new(None),
             shutting_down: AtomicBool::new(false),
             watchdog_kick: Notify::new(),
+            uliana_mode,
         }
     }
 
@@ -202,6 +205,7 @@ impl Engine {
             checks: runtime.checks.clone(),
             hosts_backup_available: runtime.hosts_backup_available,
             first_run: !config.first_run_done,
+            uliana_mode: self.uliana_mode,
         }
     }
 
@@ -304,9 +308,10 @@ impl Engine {
             .unwrap_or(false);
         lock(&self.runtime).elevated = elevated;
         tracing::info!(
-            "zapret-gui {} starting; elevated: {elevated}, mock: {}",
+            "zapret-gui {} starting; elevated: {elevated}, mock: {}, uliana: {}",
             env!("CARGO_PKG_VERSION"),
-            self.is_mock
+            self.is_mock,
+            self.uliana_mode
         );
         if elevated {
             let system = self.system.clone();
@@ -666,6 +671,53 @@ impl Engine {
                 self.edit_config(|config| config.first_run_done = true);
                 self.emit();
                 Ok(Reply::Ok)
+            }
+            Command::PlaySound { sound } => {
+                let prefix = match sound {
+                    Sound::Cat => "cat",
+                    Sound::Pig => "pig",
+                };
+                let dir = self.paths.uliana_dir();
+                let seed = std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .map(|elapsed| elapsed.subsec_nanos() as usize)
+                    .unwrap_or_default();
+                let system = self.system.clone();
+                blocking(move || match uliana::pick_sound(&dir, prefix, seed) {
+                    Some(path) => system.play_sound(&path),
+                    None => tracing::debug!("no {prefix} sounds in {}", dir.display()),
+                })
+                .await?;
+                Ok(Reply::Ok)
+            }
+            Command::InstallUlianaAssets => {
+                let dir = self.paths.uliana_dir();
+                let cat = match uliana::download_cat().await {
+                    Ok(png) => {
+                        let cat_dir = dir.clone();
+                        blocking(move || {
+                            std::fs::create_dir_all(&cat_dir)?;
+                            std::fs::write(cat_dir.join("cat.png"), png)
+                        })
+                        .await?
+                        .map_err(|error| error.to_string())
+                    }
+                    Err(error) => Err(error),
+                };
+                let sounds = blocking(move || {
+                    uliana::install_sounds(&crate::paths::minecraft_assets_dir(), &dir)
+                })
+                .await?;
+                tracing::info!("uliana assets: cat {cat:?}, sounds {sounds:?}");
+                let cat = match cat {
+                    Ok(()) => "Котик скачан.".to_string(),
+                    Err(error) => format!("Котика скачать не вышло: {error}."),
+                };
+                let sounds = match sounds {
+                    Ok(count) => format!("Звуков из Minecraft: {count}."),
+                    Err(error) => error,
+                };
+                Ok(Reply::Text(format!("{cat} {sounds}")))
             }
             Command::Shutdown => {
                 self.shutting_down.store(true, Ordering::Relaxed);

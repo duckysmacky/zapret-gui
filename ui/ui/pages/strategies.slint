@@ -46,10 +46,10 @@ export component StrategiesPage inherits VerticalBox {
             padding-bottom: 8px;
             padding-right: 12px;
             Rectangle {
-                background: row.active ? Palette.accent-background.transparentize(0.9) : Theme.card;
+                background: row.active ? Theme.accent.transparentize(0.9) : Theme.card;
                 border-radius: Theme.radius;
                 border-width: 1px;
-                border-color: row.active ? Palette.accent-background.transparentize(0.5) : Theme.card-border;
+                border-color: row.active ? Theme.accent.transparentize(0.5) : Theme.card-border;
 
                 HorizontalLayout {
                     padding: 12px;
@@ -59,7 +59,7 @@ export component StrategiesPage inherits VerticalBox {
                         padding-top: 1px;
                         Icon {
                             source: !row.usable ? @image-url("../icons/circle-alert.svg") : row.active ? @image-url("../icons/zap.svg") : @image-url("../icons/layers.svg");
-                            colorize: !row.usable ? Theme.error : row.active ? Palette.accent-background : Theme.muted;
+                            colorize: !row.usable ? Theme.error : row.active ? Theme.accent : Theme.muted;
                         }
                     }
 
@@ -78,7 +78,7 @@ export component StrategiesPage inherits VerticalBox {
                                 alignment: center;
                                 Rectangle {
                                     border-radius: 4px;
-                                    background: Palette.accent-background;
+                                    background: Theme.accent;
                                     HorizontalLayout {
                                         padding-left: 6px;
                                         padding-right: 6px;

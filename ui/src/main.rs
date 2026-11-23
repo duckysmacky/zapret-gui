@@ -27,6 +27,15 @@ fn show_notification(notification: Notification) {
     });
 }
 
+/// The Uliana cat picture is not shipped (D32): without the file the cat just isn't shown.
+pub(crate) fn load_cat(ui: &MainWindow, paths: &Paths) {
+    let file = paths.uliana_dir().join("cat.png");
+    match slint::Image::load_from_path(&file) {
+        Ok(image) => ui.global::<AppState>().set_cat_image(image),
+        Err(error) => tracing::warn!("no Uliana cat at {}: {error:?}", file.display()),
+    }
+}
+
 /// Core events → UI. State snapshots are coalesced: only the newest one is applied.
 fn pump_events(ctx: &actions::Ctx) {
     let mut events = ctx.client.subscribe();
@@ -76,7 +85,8 @@ fn main() -> anyhow::Result<()> {
         return Ok(());
     };
 
-    let core = zapret_core::start(Paths::from_env())?;
+    let paths = Paths::from_env();
+    let core = zapret_core::start(paths.clone())?;
     let ui = MainWindow::new()?;
     let ctx = actions::Ctx {
         client: core.client.clone(),
@@ -97,6 +107,9 @@ fn main() -> anyhow::Result<()> {
         .block_on(core.client.request(Command::GetSnapshot));
     if let Ok(Reply::Snapshot(state)) = initial {
         bridge::apply(&ui, &state);
+        if state.uliana_mode {
+            load_cat(&ui, &paths);
+        }
     }
     if let Ok(Reply::Lines(lines)) = core
         .runtime()

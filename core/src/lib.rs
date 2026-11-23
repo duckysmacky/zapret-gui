@@ -14,6 +14,7 @@ pub mod prober;
 pub mod report;
 pub mod runner;
 mod scanner;
+pub mod uliana;
 pub mod upstream;
 mod watchdog;
 

@@ -1,0 +1,383 @@
+// Home page of the Uliana skin (D32): same commands as HomePage, friendlier words, system checks, a how-to block,
+// a pig-snout power button and a pettable cat.
+import { Button, ComboBox, ScrollView, Switch } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+import { Card, CardHeader, Theme } from "../components.slint";
+import { PowerButton } from "home.slint";
+import { ChecksList } from "diagnostics.slint";
+
+// The cat from the uliana folder. Click: a sound and a squash-and-stretch bounce that adds up on repeated clicks.
+// Animates width/height instead of transforms: transforms don't work with the software renderer.
+component PettableCat inherits Rectangle {
+    in property <length> base-height: 120px;
+    property <length> base-width: AppState.cat-image.height > 0 ? self.base-height * AppState.cat-image.width / AppState.cat-image.height : 0;
+    property <duration> pet-start;
+    property <float> amplitude;
+    property <bool> petting;
+    property <float> elapsed-ms: root.petting ? (animation-tick() - root.pet-start) / 1ms : 0;
+    // Only read animation-tick() while petting, so an idle window doesn't redraw every frame.
+    property <float> envelope: root.petting ? root.amplitude * Math.pow(0.5, root.elapsed-ms / 90) : 0;
+    property <float> squash: root.envelope * Math.cos(root.elapsed-ms / 220 * 360deg);
+
+    width: root.base-width;
+    height: root.base-height;
+
+    // Bottom-center stays put while the cat squashes.
+    Image {
+        source: AppState.cat-image;
+        image-fit: fill;
+        width: root.base-width * (1 + root.squash / 2);
+        height: root.base-height * (1 - root.squash);
+        x: (parent.width - self.width) / 2;
+        y: parent.height - self.height;
+    }
+
+    Timer {
+        interval: 100ms;
+        running: root.petting;
+        triggered => {
+            if animation-tick() - root.pet-start > 800ms {
+                root.petting = false;
+            }
+        }
+    }
+
+    TouchArea {
+        mouse-cursor: pointer;
+        clicked => {
+            root.amplitude = min(root.envelope + 0.12, 0.3);
+            root.pet-start = animation-tick();
+            root.petting = true;
+            Commands.play-sound(0);
+        }
+    }
+}
+
+component Step inherits HorizontalLayout {
+    in property <string> number;
+    in property <string> text;
+    spacing: 8px;
+
+    Text {
+        text: root.number;
+        font-weight: 700;
+        color: Theme.accent;
+        min-width: 16px;
+    }
+
+    Text {
+        text: root.text;
+        wrap: word-wrap;
+        horizontal-stretch: 1;
+    }
+}
+
+export component UlianaHomePage inherits Rectangle {
+    property <bool> running: AppState.run-state == 2 || AppState.run-state == 1;
+    property <bool> lost: AppState.run-state == 3 || (AppState.run-state == 2 && AppState.watchdog-state == 3);
+    property <bool> can-toggle: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+    property <bool> has-cat: AppState.cat-image.width > 0;
+    property <bool> help-open;
+    // Remembered so the game switch turns back on with the last used mode.
+    property <int> last-game-mode: 1;
+    property <int> game-filter: AppState.game-filter;
+
+    init => {
+        if AppState.game-filter != 0 {
+            root.last-game-mode = AppState.game-filter;
+        }
+    }
+    changed game-filter => {
+        if root.game-filter != 0 {
+            root.last-game-mode = root.game-filter;
+        }
+        // The widgets overwrite their own bindings when clicked; resync them with the state.
+        game-switch.checked = root.game-filter != 0;
+        game-mode.current-index = root.last-game-mode - 1;
+    }
+
+    ScrollView {
+        HorizontalLayout {
+            padding: 24px;
+            // Room for the cat, so the last card can scroll out from under it.
+            padding-bottom: root.has-cat ? cat.height + 16px : 24px;
+            alignment: center;
+
+            VerticalLayout {
+                width: min(560px, root.width - 48px);
+                spacing: 16px;
+                alignment: start;
+
+                VerticalLayout {
+                    spacing: 4px;
+                    padding-top: 8px;
+                    Text {
+                        text: root.lost && AppState.run-state == 2 ? "Ой, связь пропала"
+							: AppState.run-state == 2 ? "Всё работает!"
+							: AppState.run-state == 1 ? "Включаю…"
+							: AppState.run-state == 3 ? "Что-то пошло не так"
+							: "Сейчас всё выключено";
+                        font-size: 26px;
+                        font-weight: 700;
+                        horizontal-alignment: center;
+                        color: root.lost ? Theme.error
+							 : AppState.run-state == 2 ? Theme.accent
+							 : Theme.muted;
+                    }
+
+                    Text {
+                        text: root.lost && AppState.run-state == 2 ? "Способ подключения перестал работать. Нажми «Подобрать за меня» ниже, программа найдёт новый."
+							: AppState.run-state == 2 ? "Discord и YouTube должны открываться." + (AppState.active-strategy != "" ? " Способ: «" + AppState.active-strategy + "»." : "")
+							: AppState.run-state == 1 ? "Подожди пару секунд." : AppState.run-state == 3 ? "Подробности ниже. Попробуй «Подобрать за меня» или «Проверить компьютер»."
+							: "Discord и YouTube могут не открываться. Нажми на пятачок, чтобы включить.";
+                        color: Theme.muted;
+                        horizontal-alignment: center;
+                        wrap: word-wrap;
+                        min-height: 40px;
+                    }
+                }
+
+                HorizontalLayout {
+                    alignment: center;
+                    PowerButton {
+                        snout: true;
+                        state: root.lost ? 3
+							 : AppState.run-state == 2 ? 2
+							 : AppState.run-state == 1 ? 1
+							 : 0;
+                        enabled: root.can-toggle;
+                        clicked => {
+                            Commands.play-sound(1);
+                            if root.running {
+                                Commands.disable();
+                            } else {
+                                Commands.enable();
+                            }
+                        }
+                    }
+                }
+
+                Text {
+                    text: !AppState.elevated ? "Сначала перезапусти программу от имени администратора (кнопка вверху)"
+                        : !AppState.has-bundle ? "Сначала нужно скачать zapret во «Всяких настройках»"
+                        : root.running ? "Нажми на пятачок, чтобы выключить"
+                        : "Нажми на пятачок, чтобы включить";
+                    color: Theme.muted;
+                    font-size: Theme.font-small;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+
+                if AppState.error-text != "": Card {
+                    border-color: Theme.error.transparentize(0.5);
+                    CardHeader {
+                        icon: @image-url("../icons/triangle-alert.svg");
+                        title: "Что случилось";
+                        description: AppState.error-text;
+                        accent: Theme.error;
+                    }
+
+                    if AppState.error-tail != "": Text {
+                        text: AppState.error-tail;
+                        font-family: "monospace";
+                        font-size: Theme.font-small;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Card {
+                    CardHeader {
+                        icon: @image-url("../icons/layers.svg");
+                        title: "Как будешь подключаться";
+                        description: AppState.has-bundle ? "Это способ обойти блокировку. Не знаешь, какой выбрать? Нажми «Подобрать за меня»: программа сама попробует все и оставит рабочий. Интернет в это время может ненадолго пропадать, это нормально."
+                                   : "Сначала нужно скачать zapret во «Всяких настройках».";
+                    }
+
+                    if AppState.has-bundle: HorizontalLayout {
+                        spacing: 8px;
+                        ComboBox {
+                            horizontal-stretch: 1;
+                            min-height: 40px;
+                            model: AppState.strategy-names;
+                            current-index <=> AppState.active-index;
+                            enabled: !AppState.job-active;
+                            selected(value) => {
+                                Commands.select-strategy(value);
+                            }
+                        }
+
+                        Button {
+                            text: "Подобрать за меня";
+                            icon: @image-url("../icons/wand-sparkles.svg");
+                            colorize-icon: true;
+                            min-height: 40px;
+                            enabled: root.can-toggle;
+                            clicked => {
+                                Commands.run-scan(false);
+                            }
+                        }
+                    }
+
+                    if AppState.scan-summary != "": Text {
+                        text: AppState.scan-summary;
+                        color: Theme.muted;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Card {
+                    CardHeader {
+                        icon: @image-url("../icons/gamepad-2.svg");
+                        title: "Если играешь во что-то заблокированное";
+                        description: "Включи, если онлайн-игра не подключается. Не играешь - оставь выключенным.";
+                        VerticalLayout {
+                            alignment: center;
+                            game-switch := Switch {
+                                checked: AppState.game-filter != 0;
+                                toggled => {
+                                    Commands.set-game-filter(self.checked ? root.last-game-mode : 0);
+                                }
+                            }
+                        }
+                    }
+
+                    game-mode := ComboBox {
+                        model: ["Всё сразу (TCP и UDP)", "Только TCP", "Только UDP"];
+                        current-index: root.last-game-mode - 1;
+                        enabled: AppState.game-filter != 0;
+                        selected => {
+                            Commands.set-game-filter(self.current-index + 1);
+                        }
+                    }
+                }
+
+                Card {
+                    CardHeader {
+                        icon: AppState.watchdog-state == 3 ? @image-url("../icons/shield-off.svg") : @image-url("../icons/shield-check.svg");
+                        title: "Следить, чтобы всё работало";
+                        description: "Программа сама иногда проверяет, открываются ли Discord и YouTube, и скажет, если перестали.";
+                        accent: AppState.watchdog-state == 3 ? Theme.error : AppState.watchdog-state == 2 ? Theme.ok : Theme.accent;
+                        VerticalLayout {
+                            alignment: center;
+                            Switch {
+                                checked <=> AppState.watchdog-enabled;
+                                toggled => {
+                                    Commands.set-setting("watchdog", self.checked ? 1 : 0);
+                                }
+                            }
+                        }
+                    }
+
+                    Switch {
+                        text: "Если сломалось, сама подбери новый способ";
+                        checked <=> AppState.auto-rescan;
+                        enabled: AppState.watchdog-enabled;
+                        toggled => {
+                            Commands.set-setting("auto-rescan", self.checked ? 1 : 0);
+                        }
+                    }
+
+                    if AppState.watchdog-text != "": Text {
+                        text: AppState.watchdog-text;
+                        color: AppState.watchdog-state == 3 ? Theme.error : Theme.muted;
+                        wrap: word-wrap;
+                    }
+                }
+
+                Card {
+                    CardHeader {
+                        icon: @image-url("../icons/stethoscope.svg");
+                        title: "Если что-то не работает нажми сюда и посмотри";
+                        description: "Программа проверит компьютер и подскажет, что мешает работе zapret. Если найдёт проблему, рядом будет кнопка, чтобы её исправить.";
+                    }
+
+                    HorizontalLayout {
+                        alignment: start;
+                        Button {
+                            text: "Проверить компьютер";
+                            icon: @image-url("../icons/refresh-cw.svg");
+                            colorize-icon: true;
+                            enabled: !AppState.job-active;
+                            clicked => {
+                                Commands.run-diagnostics();
+                            }
+                        }
+                    }
+
+                    ChecksList { }
+                }
+
+                Card {
+                    CardHeader {
+                        icon: @image-url("../icons/info.svg");
+                        title: "Как этим пользоваться";
+                        description: root.help-open ? "" : "Короткая инструкция, если что-то непонятно.";
+                        VerticalLayout {
+                            alignment: center;
+                            Button {
+                                text: root.help-open ? "Скрыть" : "Показать";
+                                clicked => {
+                                    root.help-open = !root.help-open;
+                                }
+                            }
+                        }
+                    }
+
+                    if root.help-open: VerticalLayout {
+                        spacing: 10px;
+                        Step {
+                            number: "0";
+                            text: "Первым делом: если вдруг нет котика или приложение не издает звуков - надо зайти в настройки и нажать на кнопку «скачать котика и звуки»";
+                        }
+
+                        Step {
+                            number: "1";
+                            text: "Чтобы включить, нажми на большой пятачок. Загорелся зелёный - всё работает, можно открывать Discord и YouTube. Чтобы выключить, нажми на пятачок ещё раз.";
+                        }
+
+                        Step {
+                            number: "2";
+                            text: "Что-то не открывается? Нажми «Подобрать за меня» и немного подожди: программа сама найдёт способ, который работает.";
+                        }
+
+                        Step {
+                            number: "3";
+                            text: "Не подключается онлайн-игра? Включи переключатель «Если играешь во что-то заблокированное».";
+                        }
+
+                        Step {
+                            number: "4";
+                            text: "Всё равно не работает? Нажми «Проверить компьютер». Программа покажет, что мешает работе zapret, а рядом будет кнопка, чтобы это исправить.";
+                        }
+
+                        Step {
+                            number: "5";
+                            text: "Если что-то перестало работать само по себе, программа сама проверяет, открываются ли Discord и YouTube. Если перестали, она скажет и предложит подобрать новый способ. Можно включить или выключить эту проверку в блоке «Следить, чтобы всё работало».";
+                        }
+
+                        Step {
+                            number: "6";
+                            text: "Крестик в углу окна не выключает программу: она сворачивает его в трей (прячется в значок у часов внизу экрана и продолжает работать на фоне). Чтобы выключить совсем, нажми на этот значок правой кнопкой и выбери «Выход». Программу можно открыть заново как приложение нажатием на иконку в трее и выбрав «Открыть».";
+                        }
+                        
+                        Step {
+                            number: "7";
+                            text: "Приложение будет автоматически запускаться с компьютером и работать на фоне. Если оно внезапно крашнется - не переживай, обход продолжит работать.";
+                        }
+                        
+                        Step {
+                            number: "8";
+                            text: "Время от времени проверяй, не вышла ли новая версия самого zapret (откуда приложение берет обходы).";
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    cat := PettableCat {
+        visible: root.has-cat;
+        x: root.width - self.width - 20px;
+        y: root.height - self.height - 8px;
+    }
+}

@@ -69,6 +69,11 @@ pub trait System: Send + Sync {
     fn ping(&self, host: &str, timeout: Duration) -> Option<u32>;
     /// Returns when the network configuration changes.
     fn wait_network_change(&self);
+    /// A variable from the user's persistent environment (`HKCU\Environment`), for processes started before
+    /// `setx` or by the autostart task (D24).
+    fn user_env_var(&self, name: &str) -> Option<String>;
+    /// Starts playing a WAV file and returns right away. Failures are only logged.
+    fn play_sound(&self, path: &Path);
 }
 
 #[derive(Debug, Clone)]

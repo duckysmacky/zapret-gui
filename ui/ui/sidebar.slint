@@ -1,6 +1,7 @@
 // Left navigation: collapse button + logo on top, one icon + label item per section.
 import { Palette } from "std-widgets.slint";
 import { Icon, Theme } from "components.slint";
+import { AppState } from "globals.slint";
 
 component NavItem inherits Rectangle {
     in property <image> icon;
@@ -13,7 +14,7 @@ component NavItem inherits Rectangle {
     border-radius: Theme.radius;
     clip: true;
     // Hover shows the active tint at half strength.
-    background: root.active ? Palette.accent-background.transparentize(0.8) : touch.has-hover ? Palette.accent-background.transparentize(0.9) : transparent;
+    background: root.active ? Theme.accent.transparentize(0.8) : touch.has-hover ? Theme.accent.transparentize(0.9) : transparent;
     animate background { duration: 150ms; }
 
     // Accent marker on the active item.
@@ -23,7 +24,7 @@ component NavItem inherits Rectangle {
         width: 3px;
         height: root.active ? 18px : 0;
         border-radius: 2px;
-        background: Palette.accent-background;
+        background: Theme.accent;
         animate height { duration: 150ms; easing: ease-out; }
     }
 
@@ -32,7 +33,7 @@ component NavItem inherits Rectangle {
         y: (parent.height - self.height) / 2;
         size: 20px;
         source: root.icon;
-        colorize: root.active ? Palette.accent-background : Palette.foreground;
+        colorize: root.active ? Theme.accent : Palette.foreground;
     }
 
     Text {
@@ -56,7 +57,7 @@ export component Sidebar inherits Rectangle {
     in-out property <int> page;
     in-out property <bool> collapsed;
 
-    width: root.collapsed ? 64px : 220px;
+    width: root.collapsed ? 64px : AppState.uliana ? 270px : 220px;
     animate width { duration: 180ms; easing: ease-out; }
     clip: true;
 
@@ -105,14 +106,14 @@ export component Sidebar inherits Rectangle {
                     alignment: center;
                     Rectangle {
                         border-radius: 5px;
-                        background: Palette.accent-background;
+                        background: Theme.accent;
                         HorizontalLayout {
                             padding-left: 6px;
                             padding-right: 6px;
                             padding-top: 1px;
                             padding-bottom: 1px;
                             Text {
-                                text: "GUI";
+                                text: AppState.uliana ? "для Ульяны" : "GUI";
                                 font-size: 13px;
                                 font-weight: 800;
                                 color: Palette.accent-foreground;
@@ -129,7 +130,7 @@ export component Sidebar inherits Rectangle {
 
         NavItem {
             icon: @image-url("icons/house.svg");
-            label: "Главная";
+            label: AppState.uliana ? "Домик" : "Главная";
             active: root.page == 0;
             collapsed: root.collapsed;
             clicked => {
@@ -139,7 +140,7 @@ export component Sidebar inherits Rectangle {
 
         NavItem {
             icon: @image-url("icons/layers.svg");
-            label: "Стратегии";
+            label: AppState.uliana ? "Способы подключения" : "Стратегии";
             active: root.page == 1;
             collapsed: root.collapsed;
             clicked => {
@@ -149,7 +150,7 @@ export component Sidebar inherits Rectangle {
 
         NavItem {
             icon: @image-url("icons/list.svg");
-            label: "Списки";
+            label: AppState.uliana ? "Какие сайты чинить" : "Списки";
             active: root.page == 2;
             collapsed: root.collapsed;
             clicked => {
@@ -159,7 +160,7 @@ export component Sidebar inherits Rectangle {
 
         NavItem {
             icon: @image-url("icons/stethoscope.svg");
-            label: "Диагностика";
+            label: AppState.uliana ? "Если что-то сломалось" : "Диагностика";
             active: root.page == 3;
             collapsed: root.collapsed;
             clicked => {

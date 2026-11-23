@@ -61,6 +61,22 @@ impl Paths {
     pub fn hosts_backups_dir(&self) -> PathBuf {
         self.data_dir.join("hosts-backups")
     }
+
+    /// Uliana mode assets (cat picture, sounds), fetched by the Settings button. Not shipped with the app (D32).
+    pub fn uliana_dir(&self) -> PathBuf {
+        self.config_dir.join("uliana")
+    }
+}
+
+/// The official Minecraft launcher's assets: `%APPDATA%\.minecraft\assets` (Linux: `~/.minecraft/assets`).
+#[cfg(windows)]
+pub fn minecraft_assets_dir() -> PathBuf {
+    config_base().join(".minecraft").join("assets")
+}
+
+#[cfg(not(windows))]
+pub fn minecraft_assets_dir() -> PathBuf {
+    home().join(".minecraft").join("assets")
 }
 
 #[cfg(windows)]

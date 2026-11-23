@@ -22,6 +22,10 @@ export struct CheckRow {
 
 export global AppState {
     in property <string> app-version;
+    // ULIANA_MODE=1: pink theme + Uliana home page (D32).
+    in property <bool> uliana;
+    // Loaded at runtime from the uliana folder; empty when missing.
+    in property <image> cat-image;
     in property <bool> is-mock;
     in property <bool> elevated: true;
     // 0 stopped, 1 starting, 2 running, 3 error
@@ -122,6 +126,9 @@ export global Commands {
     // Runs after the user confirmed a dialog.
     callback confirmed(string);
     callback quit();
+    // Uliana mode: 0 cat, 1 pig
+    callback play-sound(int);
+    callback install-uliana-assets();
 }
 
 // A confirmation dialog: the action id goes to Commands.confirmed() on OK.

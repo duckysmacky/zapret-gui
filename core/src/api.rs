@@ -344,6 +344,16 @@ pub struct AppState {
     pub checks: Vec<CheckResult>,
     pub hosts_backup_available: bool,
     pub first_run: bool,
+    /// `ULIANA_MODE=1`: the UI shows the Uliana skin (D24, D32).
+    pub uliana_mode: bool,
+}
+
+/// Uliana mode sounds, picked at random from the uliana assets folder.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Sound {
+    Cat,
+    Pig,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -416,6 +426,13 @@ pub enum Command {
         fake_name: Option<String>,
     },
     FinishFirstRun,
+    /// Plays a random sound of this kind, if the uliana folder has one.
+    PlaySound {
+        sound: Sound,
+    },
+    /// Downloads the cat picture and converts the Minecraft sounds into the uliana folder. Replies `Text` with
+    /// what worked.
+    InstallUlianaAssets,
     /// Stops jobs and the watchdog and kills winws (Quit).
     Shutdown,
 }

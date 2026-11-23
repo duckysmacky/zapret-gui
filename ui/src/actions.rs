@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use slint::ComponentHandle;
 use zapret_core::{
-    Command, CoreClient, FakeSlot, Reply, ScanMode, Settings, TestMode, Theme, UserListKind,
+    Command, CoreClient, FakeSlot, Paths, Reply, ScanMode, Settings, Sound, TestMode, Theme,
+    UserListKind,
 };
 
 use crate::bridge::{self, FIXES};
@@ -94,6 +95,20 @@ pub fn wire(ui: &MainWindow, ctx: Ctx, quit: impl Fn() + 'static) {
     commands.on_enable(move || c.send(Command::Enable));
     let c = ctx.clone();
     commands.on_disable(move || c.send(Command::Disable));
+    let c = ctx.clone();
+    commands.on_play_sound(move |kind| {
+        let sound = if kind == 1 { Sound::Pig } else { Sound::Cat };
+        c.send(Command::PlaySound { sound })
+    });
+    let c = ctx.clone();
+    commands.on_install_uliana_assets(move || {
+        c.send_then(Command::InstallUlianaAssets, |ui, reply| {
+            if let Reply::Text(text) = reply {
+                message(ui, text);
+            }
+            crate::load_cat(ui, &Paths::from_env());
+        })
+    });
     let c = ctx.clone();
     commands.on_select_strategy(move |name| {
         c.send(Command::SetActiveStrategy {

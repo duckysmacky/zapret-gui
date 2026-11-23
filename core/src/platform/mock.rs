@@ -212,6 +212,14 @@ impl System for MockSystem {
             std::thread::sleep(Duration::from_secs(3600));
         }
     }
+
+    fn user_env_var(&self, _name: &str) -> Option<String> {
+        None
+    }
+
+    fn play_sound(&self, path: &Path) {
+        tracing::info!("mock: playing sound {}", path.display());
+    }
 }
 
 type RunningStrategy = Arc<Mutex<Option<(u64, String)>>>;

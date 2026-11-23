@@ -1,15 +1,20 @@
 // Shared look: theme tokens and small building blocks used by every page.
 import { Palette } from "std-widgets.slint";
+import { AppState } from "globals.slint";
 
 export global Theme {
     // Status colors, readable on both light and dark backgrounds.
     out property <color> ok: #16a34a;
     out property <color> warn: #d97706;
     out property <color> error: #dc2626;
-    out property <brush> muted: Palette.foreground.transparentize(0.4);
-    out property <brush> card: Palette.foreground.transparentize(0.965);
-    out property <brush> card-border: Palette.foreground.transparentize(0.9);
-    out property <brush> hover: Palette.foreground.transparentize(0.94);
+    // Uliana mode swaps these for a pastel pink light theme. Fluent widgets keep the system accent (no public API).
+    out property <brush> accent: AppState.uliana ? #e0619a : Palette.accent-background;
+    out property <brush> background: AppState.uliana ? #fff0f6 : Palette.background;
+    out property <brush> border: AppState.uliana ? #f2bfd5 : Palette.border;
+    out property <brush> muted: AppState.uliana ? #8c5a72 : Palette.foreground.transparentize(0.4);
+    out property <brush> card: AppState.uliana ? #ffffffb8 : Palette.foreground.transparentize(0.965);
+    out property <brush> card-border: AppState.uliana ? #f5c6da : Palette.foreground.transparentize(0.9);
+    out property <brush> hover: AppState.uliana ? #e0619a1f : Palette.foreground.transparentize(0.94);
     out property <length> radius: 8px;
     out property <length> font-small: 12px;
     out property <length> font-title: 15px;
@@ -45,7 +50,7 @@ export component CardHeader inherits HorizontalLayout {
     in property <image> icon;
     in property <string> title;
     in property <string> description;
-    in property <color> accent: Palette.accent-background;
+    in property <color> accent: Theme.accent;
     spacing: 12px;
 
     VerticalLayout {
@@ -98,7 +103,7 @@ export component PageHeader inherits HorizontalLayout {
         Icon {
             source: root.icon;
             size: 26px;
-            colorize: Palette.accent-background;
+            colorize: Theme.accent;
         }
     }
 
@@ -122,7 +127,7 @@ export component PageHeader inherits HorizontalLayout {
 // A colored banner with an icon (admin warning, messages, errors).
 export component Banner inherits Rectangle {
     in property <image> icon;
-    in property <color> accent: Palette.accent-background;
+    in property <color> accent: Theme.accent;
     background: root.accent.transparentize(0.88);
     border-radius: Theme.radius;
     border-width: 1px;

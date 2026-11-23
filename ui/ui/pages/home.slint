@@ -3,13 +3,15 @@ import { AppState, Commands } from "../globals.slint";
 import { Card, CardHeader, Icon, Theme } from "../components.slint";
 
 // The big round on/off button. Glows in the state color; pulses while starting or when the connection is lost.
-component PowerButton inherits Rectangle {
+export component PowerButton inherits Rectangle {
     // 0 off, 1 starting, 2 on, 3 error / connection lost
     in property <int> state;
     in property <bool> enabled: true;
+    // Uliana mode: a pig snout instead of the power icon.
+    in property <bool> snout;
     callback clicked();
 
-    property <color> tint: root.state == 2 ? Theme.ok : root.state == 1 ? Theme.warn : root.state == 3 ? Theme.error : #8a8a8a;
+    property <color> tint: root.state == 2 ? (root.snout ? Theme.accent : Theme.ok) : root.state == 1 ? Theme.warn : root.state == 3 ? Theme.error : #8a8a8a;
     // Only read animation-tick() while pulsing, so an idle window doesn't redraw every frame.
     property <float> pulse: root.state == 1 || root.state == 3 ? (Math.sin(animation-tick() / 1.6s * 360deg) + 1) / 2 : 1;
     property <length> size: touch.pressed ? 140px : touch.has-hover && root.enabled ? 154px : 148px;
@@ -36,16 +38,34 @@ component PowerButton inherits Rectangle {
         border-radius: self.width / 2;
         background: root.state == 0 ? Palette.control-background : root.tint;
         border-width: root.state == 0 ? 1px : 0;
-        border-color: Palette.border;
+        border-color: Theme.border;
         drop-shadow-blur: root.state == 0 ? 10px : 16px + 20px * root.pulse;
         drop-shadow-color: root.state == 0 ? #00000026 : root.tint.transparentize(0.25 + 0.35 * (1 - root.pulse));
         opacity: root.enabled ? 1 : 0.5;
         animate width, background { duration: 200ms; easing: ease-out; }
 
-        Icon {
+        if !root.snout: Icon {
             source: @image-url("../icons/power.svg");
             size: 64px;
             colorize: root.state == 0 ? Theme.muted : #ffffff;
+        }
+
+        if root.snout: Rectangle {
+            width: parent.width * 0.66;
+            height: parent.width * 0.48;
+            border-radius: self.height / 2;
+            background: #f9b3cb;
+            border-width: 3px;
+            border-color: #d9799c;
+
+            for offset in [-1, 1]: Rectangle {
+                width: parent.width * 0.17;
+                height: parent.height * 0.42;
+                x: (parent.width - self.width) / 2 + offset * parent.width * 0.19;
+                y: (parent.height - self.height) / 2;
+                border-radius: self.width / 2;
+                background: #9c3d63;
+            }
         }
     }
 
@@ -255,7 +275,7 @@ export component HomePage inherits ScrollView {
                     icon: AppState.watchdog-state == 3 ? @image-url("../icons/shield-off.svg") : @image-url("../icons/shield-check.svg");
                     title: "Сторож соединения";
                     description: "Периодически проверяет, что Discord и YouTube открываются, и сообщает, если стратегия перестала работать.";
-                    accent: AppState.watchdog-state == 3 ? Theme.error : AppState.watchdog-state == 2 ? Theme.ok : Palette.accent-background;
+                    accent: AppState.watchdog-state == 3 ? Theme.error : AppState.watchdog-state == 2 ? Theme.ok : Theme.accent;
                     VerticalLayout {
                         alignment: center;
                         Switch {

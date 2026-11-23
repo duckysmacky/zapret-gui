@@ -29,6 +29,8 @@ export component SettingsPage inherits ScrollView {
                     ComboBox {
                         model: ["Как в системе", "Светлая", "Тёмная"];
                         current-index <=> AppState.theme;
+                        // The Uliana theme is always pink and light.
+                        enabled: !AppState.uliana;
                         selected => {
                             Commands.set-setting("theme", self.current-index);
                         }
@@ -249,6 +251,24 @@ export component SettingsPage inherits ScrollView {
                         selected => {
                             Commands.set-fake(1, self.current-index);
                         }
+                    }
+                }
+            }
+        }
+
+        if AppState.uliana: Card {
+            CardHeader {
+                icon: @image-url("../icons/download.svg");
+                title: "Котик и звуки";
+                description: "Скачивает картинку котика из интернета и берёт звуки котика и свинки из Minecraft на этом компьютере. Minecraft должен быть установлен и хотя бы раз запущен.";
+            }
+
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Скачать котика и звуки";
+                    clicked => {
+                        Commands.install-uliana-assets();
                     }
                 }
             }

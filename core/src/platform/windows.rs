@@ -10,6 +10,7 @@ use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncRead, BufReader};
 use tokio::sync::mpsc;
 use windows::Win32::Foundation::{CloseHandle, ERROR_SERVICE_DOES_NOT_EXIST, HANDLE};
+use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows::Win32::NetworkManagement::IpHelper::{
     ICMP_ECHO_REPLY, IcmpCloseHandle, IcmpCreateFile, IcmpSendEcho, NotifyAddrChange,
 };
@@ -620,6 +621,23 @@ impl System for WindowsSystem {
         let status = unsafe { NotifyAddrChange(std::ptr::null_mut(), std::ptr::null()) };
         if status != 0 {
             std::thread::sleep(Duration::from_secs(60));
+        }
+    }
+
+    fn user_env_var(&self, name: &str) -> Option<String> {
+        reg_string(HKEY_CURRENT_USER, "Environment", name)
+    }
+
+    fn play_sound(&self, path: &Path) {
+        let played = unsafe {
+            PlaySoundW(
+                &HSTRING::from(path),
+                None,
+                SND_FILENAME | SND_ASYNC | SND_NODEFAULT,
+            )
+        };
+        if !played.as_bool() {
+            tracing::warn!("could not play {}", path.display());
         }
     }
 }

@@ -46,7 +46,7 @@ export component StatusBar inherits Rectangle {
     Rectangle {
         y: 0;
         height: 1px;
-        background: Palette.border;
+        background: Theme.border;
     }
 
     HorizontalLayout {
@@ -108,7 +108,7 @@ export component StatusBar inherits Rectangle {
             icon: @image-url("icons/download.svg");
             text: "Доступна " + AppState.update-available;
             can-elide: true;
-            color: Palette.accent-background;
+            color: Theme.accent;
         }
         StatusItem {
             icon: @image-url("icons/tag.svg");
