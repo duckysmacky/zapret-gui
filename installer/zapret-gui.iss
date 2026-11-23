@@ -5,6 +5,10 @@
   #define AppVersion "0.1.0"
 #endif
 
+#ifndef ExePath
+  #define ExePath "..\target\release\zapret-gui.exe"
+#endif
+
 [Setup]
 AppId={{6F3C2B1E-8D4A-4E7B-9C51-2A7D0E9B4F13}
 AppName=zapret-gui
@@ -30,7 +34,7 @@ CloseApplications=yes
 Name: "russian"; MessagesFile: "compiler:Languages\Russian.isl"
 
 [Files]
-Source: "..\target\release\zapret-gui.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "{#ExePath}"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"
 Source: "THIRD-PARTY-NOTICES.txt"; DestDir: "{app}"
 

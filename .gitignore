@@ -1,8 +1,8 @@
 .worktrees/
 .context/
+.serena/
 
 graphify-out/
 
 target/
 installer/Output/
-
