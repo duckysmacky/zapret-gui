@@ -521,7 +521,7 @@ mod tests {
 
     fn state() -> CoreState {
         CoreState {
-            app_version: "0.1.0".into(),
+            app_version: "1.0.0".into(),
             elevated: true,
             run_state: RunState::Stopped,
             active_strategy: Some("b".into()),

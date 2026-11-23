@@ -2,7 +2,7 @@
 ;   iscc /DAppVersion=1.2.3 installer\zapret-gui.iss
 
 #ifndef AppVersion
-  #define AppVersion "0.1.0"
+  #define AppVersion "1.0.0"
 #endif
 
 #ifndef ExePath

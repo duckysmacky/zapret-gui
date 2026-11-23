@@ -7026,7 +7026,7 @@ dependencies = [
 
 [[package]]
 name = "zapret-core"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "async-trait",
  "insta",
@@ -7047,7 +7047,7 @@ dependencies = [
 
 [[package]]
 name = "zapret-ui"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "anyhow",
  "interprocess",
