@@ -1,0 +1,331 @@
+import { Button, ComboBox, ScrollView, Switch, Palette } from "std-widgets.slint";
+import { AppState, Commands } from "../globals.slint";
+import { Card, CardHeader, Icon, Theme } from "../components.slint";
+import { ChecksList } from "diagnostics.slint";
+
+// The big round on/off button. Glows in the state color; pulses while starting or when the connection is lost.
+export component PowerButton inherits Rectangle {
+    // 0 off, 1 starting, 2 on, 3 error / connection lost
+    in property <int> state;
+    in property <bool> enabled: true;
+    // Uliana mode: a pig snout instead of the power icon.
+    in property <bool> snout;
+    callback clicked();
+
+    property <color> tint: root.state == 2 ? (root.snout ? Theme.accent : Theme.ok) : root.state == 1 ? Theme.warn : root.state == 3 ? Theme.error : #8a8a8a;
+    // Only read animation-tick() while pulsing, so an idle window doesn't redraw every frame.
+    property <float> pulse: root.state == 1 || root.state == 3 ? (Math.sin(animation-tick() / 1.6s * 360deg) + 1) / 2 : 1;
+    property <length> size: touch.pressed ? 140px : touch.has-hover && root.enabled ? 154px : 148px;
+
+    width: 200px;
+    height: 200px;
+
+    // Soft halo ring.
+    Rectangle {
+        width: root.size + 28px;
+        height: self.width;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: self.width / 2;
+        background: root.state == 0 ? Theme.card : root.tint.transparentize(0.86 + 0.06 * (1 - root.pulse));
+        animate background { duration: 250ms; }
+    }
+
+    Rectangle {
+        width: root.size;
+        height: self.width;
+        x: (parent.width - self.width) / 2;
+        y: (parent.height - self.height) / 2;
+        border-radius: self.width / 2;
+        background: root.state == 0 ? Palette.control-background : root.tint;
+        border-width: root.state == 0 ? 1px : 0;
+        border-color: Theme.border;
+        drop-shadow-blur: root.state == 0 ? 10px : 16px + 20px * root.pulse;
+        drop-shadow-color: root.state == 0 ? #00000026 : root.tint.transparentize(0.25 + 0.35 * (1 - root.pulse));
+        opacity: root.enabled ? 1 : 0.5;
+        animate width, background { duration: 200ms; easing: ease-out; }
+
+        if !root.snout: Icon {
+            source: @image-url("../icons/power.svg");
+            size: 64px;
+            colorize: root.state == 0 ? Theme.muted : #ffffff;
+        }
+
+        if root.snout: Rectangle {
+            width: parent.width * 0.66;
+            height: parent.width * 0.48;
+            border-radius: self.height / 2;
+            background: #f9b3cb;
+            border-width: 3px;
+            border-color: #d9799c;
+
+            for offset in [-1, 1]: Rectangle {
+                width: parent.width * 0.17;
+                height: parent.height * 0.42;
+                x: (parent.width - self.width) / 2 + offset * parent.width * 0.19;
+                y: (parent.height - self.height) / 2;
+                border-radius: self.width / 2;
+                background: #9c3d63;
+            }
+        }
+    }
+
+    touch := TouchArea {
+        enabled: root.enabled;
+        mouse-cursor: root.enabled ? pointer : default;
+        clicked => {
+            root.clicked();
+        }
+    }
+}
+
+export component HomePage inherits ScrollView {
+    property <bool> running: AppState.run-state == 2 || AppState.run-state == 1;
+    property <bool> lost: AppState.run-state == 3 || (AppState.run-state == 2 && AppState.watchdog-state == 3);
+    property <bool> can-toggle: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+    // Remembered so the game switch turns back on with the last used mode.
+    property <int> last-game-mode: 1;
+    property <int> game-filter: AppState.game-filter;
+
+    init => {
+        if AppState.game-filter != 0 {
+            root.last-game-mode = AppState.game-filter;
+        }
+    }
+    changed game-filter => {
+        if root.game-filter != 0 {
+            root.last-game-mode = root.game-filter;
+        }
+        // The widgets overwrite their own bindings when clicked; resync them with the state.
+        game-switch.checked = root.game-filter != 0;
+        game-mode.current-index = root.last-game-mode - 1;
+    }
+
+    HorizontalLayout {
+        padding: 24px;
+        alignment: center;
+
+        VerticalLayout {
+            width: min(560px, root.visible-width - 48px);
+            spacing: 16px;
+            alignment: start;
+
+            // Status above the button.
+            VerticalLayout {
+                spacing: 4px;
+                padding-top: 8px;
+                Text {
+                    text: root.lost && AppState.run-state == 2 ? "Соединение потеряно" : AppState.run-state == 2 ? "Обход включён" : AppState.run-state == 1 ? "Запуск…" : AppState.run-state == 3 ? "Ошибка" : "Обход выключен";
+                    font-size: 26px;
+                    font-weight: 700;
+                    horizontal-alignment: center;
+                    color: root.lost ? Theme.error : AppState.run-state == 2 ? Theme.ok : Palette.foreground;
+                }
+
+                Text {
+                    text: AppState.active-strategy != "" ? "Стратегия «" + AppState.active-strategy + "»" : AppState.status-text;
+                    color: Theme.muted;
+                    horizontal-alignment: center;
+                    wrap: word-wrap;
+                }
+
+                if AppState.active-ping != "": HorizontalLayout {
+                    alignment: center;
+                    padding-top: 4px;
+                    Rectangle {
+                        border-radius: 12px;
+                        background: Theme.card;
+                        border-width: 1px;
+                        border-color: Theme.card-border;
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            padding-top: 3px;
+                            padding-bottom: 3px;
+                            spacing: 6px;
+                            VerticalLayout {
+                                alignment: center;
+                                Icon {
+                                    source: @image-url("../icons/activity.svg");
+                                    size: 14px;
+                                    colorize: Theme.muted;
+                                }
+                            }
+
+                            Text {
+                                text: "Пинг " + AppState.active-ping + " при последней проверке";
+                                font-size: Theme.font-small;
+                                color: Theme.muted;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalLayout {
+                alignment: center;
+                PowerButton {
+                    state: root.lost ? 3 : AppState.run-state == 2 ? 2 : AppState.run-state == 1 ? 1 : 0;
+                    enabled: root.can-toggle;
+                    clicked => {
+                        if root.running {
+                            Commands.disable();
+                        } else {
+                            Commands.enable();
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: !AppState.elevated ? "Нужны права администратора" : !AppState.has-bundle ? "Сначала скачайте zapret в «Настройках»" : root.running ? "Нажмите, чтобы выключить" : "Нажмите, чтобы включить";
+                color: Theme.muted;
+                font-size: Theme.font-small;
+                horizontal-alignment: center;
+            }
+
+            if AppState.error-text != "": Card {
+                border-color: Theme.error.transparentize(0.5);
+                CardHeader {
+                    icon: @image-url("../icons/triangle-alert.svg");
+                    title: "Ошибка";
+                    description: AppState.error-text;
+                    accent: Theme.error;
+                }
+
+                if AppState.error-tail != "": Text {
+                    text: AppState.error-tail;
+                    font-family: "monospace";
+                    font-size: Theme.font-small;
+                    wrap: word-wrap;
+                }
+            }
+
+            // Strategy selector + auto-selection.
+            Card {
+                CardHeader {
+                    icon: @image-url("../icons/layers.svg");
+                    title: "Стратегия";
+                    description: AppState.has-bundle ? "Выберите вручную или доверьте подбор программе: она сама найдёт рабочую." : "zapret ещё не скачан. Скачайте его в «Настройках» или через мастер первого запуска.";
+                }
+
+                if AppState.has-bundle: HorizontalLayout {
+                    spacing: 8px;
+                    ComboBox {
+                        horizontal-stretch: 1;
+                        min-height: 40px;
+                        model: AppState.strategy-names;
+                        current-index <=> AppState.active-index;
+                        enabled: !AppState.job-active;
+                        selected(value) => {
+                            Commands.select-strategy(value);
+                        }
+                    }
+
+                    Button {
+                        text: "Автоподбор";
+                        icon: @image-url("../icons/wand-sparkles.svg");
+                        colorize-icon: true;
+                        primary: true;
+                        min-height: 40px;
+                        enabled: root.can-toggle;
+                        clicked => {
+                            Commands.run-scan(false);
+                        }
+                    }
+                }
+
+                if AppState.scan-summary != "": Text {
+                    text: AppState.scan-summary;
+                    color: Theme.muted;
+                    wrap: word-wrap;
+                }
+            }
+
+            // Game mode.
+            Card {
+                CardHeader {
+                    icon: @image-url("../icons/gamepad-2.svg");
+                    title: "Игровой режим";
+                    description: "Включайте для онлайн-игр. Порты настраиваются в «Настройках».";
+                    VerticalLayout {
+                        alignment: center;
+                        game-switch := Switch {
+                            checked: AppState.game-filter != 0;
+                            toggled => {
+                                Commands.set-game-filter(self.checked ? root.last-game-mode : 0);
+                            }
+                        }
+                    }
+                }
+
+                game-mode := ComboBox {
+                    model: ["TCP и UDP", "Только TCP", "Только UDP"];
+                    current-index: root.last-game-mode - 1;
+                    enabled: AppState.game-filter != 0;
+                    selected => {
+                        Commands.set-game-filter(self.current-index + 1);
+                    }
+                }
+            }
+
+            // Connection guard (watchdog).
+            Card {
+                CardHeader {
+                    icon: AppState.watchdog-state == 3 ? @image-url("../icons/shield-off.svg") : @image-url("../icons/shield-check.svg");
+                    title: "Сторож соединения";
+                    description: "Периодически проверяет, что Discord и YouTube открываются, и сообщает, если стратегия перестала работать.";
+                    accent: AppState.watchdog-state == 3 ? Theme.error : AppState.watchdog-state == 2 ? Theme.ok : Theme.accent;
+                    VerticalLayout {
+                        alignment: center;
+                        Switch {
+                            checked <=> AppState.watchdog-enabled;
+                            toggled => {
+                                Commands.set-setting("watchdog", self.checked ? 1 : 0);
+                            }
+                        }
+                    }
+                }
+
+                Switch {
+                    text: "Подбирать новую стратегию при сбое";
+                    checked <=> AppState.auto-rescan;
+                    enabled: AppState.watchdog-enabled;
+                    toggled => {
+                        Commands.set-setting("auto-rescan", self.checked ? 1 : 0);
+                    }
+                }
+
+                if AppState.watchdog-text != "": Text {
+                    text: AppState.watchdog-text;
+                    color: AppState.watchdog-state == 3 ? Theme.error : Theme.muted;
+                    wrap: word-wrap;
+                }
+            }
+            
+            Card {
+                CardHeader {
+                    icon: @image-url("../icons/stethoscope.svg");
+                    title: "Проверка системы";
+                    description: "Находит, что может мешать обходу, и предлагает исправление.";
+                }
+
+                HorizontalLayout {
+                    alignment: start;
+                    Button {
+                            text: "Запустить проверки";
+                        icon: @image-url("../icons/refresh-cw.svg");
+                        colorize-icon: true;
+                        enabled: !AppState.job-active;
+                        clicked => {
+                            Commands.run-diagnostics();
+                        }
+                    }
+                }
+
+                ChecksList { }
+            }
+    }
+    }
+}

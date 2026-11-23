@@ -1,0 +1,204 @@
+import { Button, ComboBox, ScrollView, TextEdit, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands, Dialog } from "../globals.slint";
+import { Card, CardHeader, Icon, PageHeader, Theme } from "../components.slint";
+
+// System checks with their fix buttons. Shared by the Diagnostics page and the Uliana home.
+export component ChecksList inherits VerticalLayout {
+    spacing: 10px;
+
+    for check in AppState.checks: HorizontalLayout {
+        spacing: 8px;
+        VerticalLayout {
+            alignment: start;
+            Icon {
+                source: check.status == 0 ? @image-url("../icons/circle-check.svg") : check.status == 1 ? @image-url("../icons/circle-alert.svg") : @image-url("../icons/triangle-alert.svg");
+                colorize: check.status == 0 ? Theme.ok : check.status == 1 ? Theme.warn : Theme.error;
+            }
+        }
+
+        VerticalLayout {
+            horizontal-stretch: 1;
+            Text {
+                text: check.title;
+                font-weight: 600;
+            }
+
+            Text {
+                text: check.detail;
+                color: Theme.muted;
+                wrap: word-wrap;
+            }
+        }
+
+        if check.fix-label != "": Button {
+            text: check.fix-label;
+            enabled: AppState.elevated && !AppState.job-active;
+            clicked => {
+                if check.fix-confirm != "" {
+                    Dialog.ask(check.title, check.fix-confirm, "fix:" + check.fix-id, check.fix-label);
+                } else {
+                    Commands.apply-fix(check.fix-id);
+                }
+            }
+        }
+    }
+}
+
+export component DiagnosticsPage inherits ScrollView {
+    property <int> test-scope;
+
+    VerticalBox {
+        alignment: start;
+        spacing: 12px;
+        PageHeader {
+            icon: @image-url("../icons/stethoscope.svg");
+            title: "Диагностика";
+            subtitle: "Проверки системы, тесты стратегий и журнал.";
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/circle-check.svg");
+                title: "Проверки системы";
+                description: "Проверки из service.bat: что может мешать обходу и как это исправить.";
+                VerticalLayout {
+                    alignment: center;
+                    Button {
+                        text: "Запустить проверки";
+                        icon: @image-url("../icons/refresh-cw.svg");
+                        colorize-icon: true;
+                        primary: true;
+                        enabled: !AppState.job-active;
+                        clicked => {
+                            Commands.run-diagnostics();
+                        }
+                    }
+                }
+            }
+
+            ChecksList { }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/activity.svg");
+                title: "Тесты стратегий";
+                description: "Стандартный тест проверяет сайты Discord, YouTube и другие. DPI-тест ищет «заморозку» соединения после 16–20 КБ. Во время теста интернет ненадолго пропадает.";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    ComboBox {
+                        model: ["Активная стратегия", "Все стратегии"];
+                        current-index <=> root.test-scope;
+                    }
+
+                    Button {
+                        text: "Стандартный тест";
+                        enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                        clicked => {
+                            Commands.run-tests(0, root.test-scope == 1);
+                        }
+                    }
+
+                    Button {
+                        text: "DPI-тест";
+                        enabled: AppState.elevated && AppState.has-bundle && !AppState.job-active;
+                        clicked => {
+                            Commands.run-tests(1, root.test-scope == 1);
+                        }
+                    }
+                }
+
+                if AppState.test-report != "": TextEdit {
+                    text: AppState.test-report;
+                    read-only: true;
+                    min-height: 200px;
+                    wrap: no-wrap;
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/wand-sparkles.svg");
+                title: "Действия";
+                description: "Службы zapret и WinDivert, кэш Discord, файл hosts.";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Удалить службы zapret / WinDivert";
+                        enabled: AppState.elevated && !AppState.job-active;
+                        clicked => {
+                            Dialog.ask("Удаление служб", "Будут остановлены и удалены службы zapret, WinDivert и WinDivert14, а также завершены все процессы winws.exe. Продолжить?", "remove-services", "Удалить");
+                        }
+                    }
+
+                    Button {
+                        text: "Очистить кэш Discord";
+                        clicked => {
+                            Dialog.ask("Кэш Discord", "Discord будет закрыт, его кэш (Cache, Code Cache, GPUCache) удалён. Продолжить?", "clear-discord", "Очистить");
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Обновить файл hosts";
+                        enabled: AppState.elevated;
+                        clicked => {
+                            Commands.check-hosts();
+                        }
+                    }
+
+                    Button {
+                        text: "Восстановить hosts из копии";
+                        enabled: AppState.elevated && AppState.hosts-backup-available;
+                        clicked => {
+                            Dialog.ask("Восстановление hosts", "Файл hosts будет заменён последней резервной копией. Продолжить?", "restore-hosts", "Восстановить");
+                        }
+                    }
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/list.svg");
+                title: "Журнал";
+                description: "Сообщения программы и winws.";
+                VerticalLayout {
+                    alignment: center;
+                    Button {
+                        text: "Отчёт для поддержки…";
+                        clicked => {
+                            Commands.open-report();
+                        }
+                    }
+                }
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                TextEdit {
+                    text: AppState.logs;
+                    read-only: true;
+                    min-height: 240px;
+                    wrap: no-wrap;
+                    font-size: 11px;
+                }
+            }
+        }
+    }
+}

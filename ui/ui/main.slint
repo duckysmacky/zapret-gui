@@ -1,0 +1,247 @@
+import { Button, ProgressIndicator, TextEdit, Palette, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands, Dialog, StrategyRow, CheckRow } from "globals.slint";
+import { HomePage } from "pages/home.slint";
+import { UlianaHomePage } from "pages/uliana_home.slint";
+import { StrategiesPage } from "pages/strategies.slint";
+import { ListsPage } from "pages/lists.slint";
+import { DiagnosticsPage } from "pages/diagnostics.slint";
+import { GuidePage } from "pages/guide.slint";
+import { SettingsPage } from "pages/settings.slint";
+import { Wizard } from "pages/wizard.slint";
+import { Sidebar } from "sidebar.slint";
+import { StatusBar } from "statusbar.slint";
+import { Banner, Theme } from "components.slint";
+
+export { AppState, Commands, Dialog, StrategyRow, CheckRow }
+
+export component MainWindow inherits Window {
+    title: "zapret-gui";
+    preferred-width: 960px;
+    preferred-height: 720px;
+    min-width: 640px;
+    min-height: 480px;
+    background: Theme.background;
+
+    property <int> page;
+
+    function apply-theme() {
+        Palette.color-scheme = root.theme == 1 ? ColorScheme.light : root.theme == 2 ? ColorScheme.dark : ColorScheme.unknown;
+    }
+    init => {
+        root.apply-theme();
+    }
+    changed theme => {
+        root.apply-theme();
+    }
+    // The Uliana pink theme is light only.
+    property <int> theme: AppState.uliana ? 1 : AppState.theme;
+
+    VerticalLayout {
+        HorizontalLayout {
+            vertical-stretch: 1;
+            if !AppState.first-run: Sidebar {
+                page <=> root.page;
+            }
+            if !AppState.first-run: Rectangle {
+                width: 1px;
+                background: Theme.border;
+            }
+
+            VerticalLayout {
+                horizontal-stretch: 1;
+                padding: 8px;
+                spacing: 6px;
+
+                if !AppState.elevated: Banner {
+                    icon: @image-url("icons/triangle-alert.svg");
+                    accent: Theme.warn;
+                    Text {
+                        text: "Программа запущена без прав администратора. Включение обхода, подбор и исправления недоступны.";
+                        wrap: word-wrap;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: "Перезапустить от имени администратора";
+                        clicked => {
+                            Commands.restart-as-admin();
+                        }
+                    }
+                }
+
+                if AppState.message != "": Banner {
+                    icon: @image-url("icons/info.svg");
+                    Text {
+                        text: AppState.message;
+                        wrap: word-wrap;
+                        vertical-alignment: center;
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        icon: @image-url("icons/x.svg");
+                        colorize-icon: true;
+                        clicked => {
+                            AppState.message = "";
+                        }
+                    }
+                }
+
+                if AppState.job-active && !AppState.first-run: Banner {
+                    icon: @image-url("icons/refresh-cw.svg");
+                    VerticalLayout {
+                        horizontal-stretch: 1;
+                        spacing: 6px;
+                        alignment: center;
+                        Text {
+                            text: AppState.job-text;
+                            wrap: word-wrap;
+                        }
+
+                        ProgressIndicator {
+                            progress: AppState.job-progress < 0 ? 0 : AppState.job-progress;
+                            indeterminate: AppState.job-progress < 0;
+                        }
+                    }
+
+                    if AppState.job-cancellable: Button {
+                        text: "Отмена";
+                        clicked => {
+                            Commands.cancel-job();
+                        }
+                    }
+                }
+
+                if AppState.first-run: Wizard {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 0 && AppState.uliana: UlianaHomePage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 0 && !AppState.uliana: HomePage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 1: StrategiesPage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 2: ListsPage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 3: DiagnosticsPage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 4: GuidePage {
+                    vertical-stretch: 1;
+                }
+                if !AppState.first-run && root.page == 5: SettingsPage {
+                    vertical-stretch: 1;
+                }
+            }
+        }
+
+        if !AppState.first-run: StatusBar { }
+    }
+
+    // Confirmation dialog.
+    if Dialog.open: Rectangle {
+        background: #00000080;
+        TouchArea { }
+
+        Rectangle {
+            width: min(520px, root.width - 32px);
+            height: dialog-layout.preferred-height;
+            background: Theme.background;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.border;
+            dialog-layout := VerticalBox {
+                Text {
+                    text: Dialog.title;
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: Dialog.text;
+                    wrap: word-wrap;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: end;
+                    Button {
+                        text: "Отмена";
+                        clicked => {
+                            Dialog.open = false;
+                        }
+                    }
+
+                    Button {
+                        text: Dialog.ok-label;
+                        primary: true;
+                        clicked => {
+                            Dialog.open = false;
+                            Commands.confirmed(Dialog.action);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Diagnostics report: shown in full before copying (T9).
+    if AppState.report-text != "": Rectangle {
+        background: #00000080;
+        TouchArea { }
+
+        Rectangle {
+            width: root.width - 64px;
+            height: root.height - 64px;
+            background: Theme.background;
+            border-radius: 8px;
+            border-width: 1px;
+            border-color: Theme.border;
+            VerticalBox {
+                Text {
+                    text: "Отчёт для поддержки";
+                    font-size: 16px;
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "Проверьте текст перед отправкой. Содержимое ваших списков в отчёт не входит.";
+                    wrap: word-wrap;
+                }
+
+                report := TextEdit {
+                    text: AppState.report-text;
+                    read-only: true;
+                    vertical-stretch: 1;
+                    wrap: no-wrap;
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: end;
+                    Button {
+                        text: "Скопировать";
+                        primary: true;
+                        clicked => {
+                            report.select-all();
+                            report.copy();
+                            AppState.message = "Отчёт скопирован в буфер обмена.";
+                        }
+                    }
+
+                    Button {
+                        text: "Закрыть";
+                        clicked => {
+                            AppState.report-text = "";
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

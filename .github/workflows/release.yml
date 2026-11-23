@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo test --workspace
+      - run: cargo build --release -p zapret-ui
+
+      - name: Install Inno Setup if missing
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue) -and -not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $iscc = (Get-Command iscc -ErrorAction SilentlyContinue).Source
+          if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
+          & $iscc "/DAppVersion=$version" installer\zapret-gui.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Draft GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $installer = "installer\Output\zapret-gui-setup-$version.exe"
+          $hash = (Get-FileHash $installer -Algorithm SHA256).Hash.ToLower()
+          $notes = @"
+          # О релизе
+
+          <!-- TODO: что нового в этой версии -->
+
+          ## Что изменилось
+
+          <!-- TODO: список изменений -->
+
+          ## Установка
+
+          1. Удалите старые установки zapret и других обходов (GoodbyeDPI и т.п.), иначе обход не запустится.
+          2. Скачайте ниже файл ``zapret-gui-setup-$version.exe`` и запустите его.
+          3. При первом запуске программа сама скачает zapret, подберёт рабочую стратегию и предложит автозапуск.
+
+          Если Windows пишет «Система Windows защитила ваш компьютер» - нажмите «Подробнее» -> «Выполнить в любом
+          случае». Установщик пока не подписан. Антивирус может ругаться на ``winws.exe`` и драйвер WinDivert - это
+          нормально для таких программ. Подробнее - в [README](https://github.com/${{ github.repository }}#readme).
+
+          ## Обновление
+
+          Просто запустите новый установщик поверх старой версии - она будет заменена. Если zapret-gui сейчас
+          запущен, установщик попросит закрыть его.
+
+          ## Проверка файла
+
+          SHA256 установщика: ``$hash``
+
+          ---
+
+          zapret-gui - неофициальная программа, не проект zapret и не проект Flowseal.
+          "@
+          gh release create "${{ github.ref_name }}" $installer --draft --title "${{ github.ref_name }} - Релиз" --notes $notes

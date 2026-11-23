@@ -1,0 +1,317 @@
+import { AboutSlint, Button, ComboBox, LineEdit, ScrollView, SpinBox, Switch, VerticalBox } from "std-widgets.slint";
+import { AppState, Commands, Dialog } from "../globals.slint";
+import { Card, CardHeader, PageHeader, Theme } from "../components.slint";
+
+export component SettingsPage inherits ScrollView {
+    VerticalBox {
+        alignment: start;
+        spacing: 12px;
+        PageHeader {
+            icon: @image-url("../icons/settings.svg");
+            title: "Настройки";
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/settings.svg");
+                title: "Общие";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: "Тема";
+                        vertical-alignment: center;
+                    }
+
+                    ComboBox {
+                        model: ["Как в системе", "Светлая", "Тёмная"];
+                        current-index <=> AppState.theme;
+                        // The Uliana theme is always pink and light.
+                        enabled: !AppState.uliana;
+                        selected => {
+                            Commands.set-setting("theme", self.current-index);
+                        }
+                    }
+                }
+
+                Switch {
+                    text: "Запускать вместе с Windows";
+                    checked <=> AppState.autostart;
+                    enabled: AppState.elevated;
+                    toggled => {
+                        Commands.set-setting("autostart", self.checked ? 1 : 0);
+                    }
+                }
+
+                Switch {
+                    text: "Включать обход при запуске программы";
+                    checked <=> AppState.start-on-launch;
+                    toggled => {
+                        Commands.set-setting("start-on-launch", self.checked ? 1 : 0);
+                    }
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/shield-check.svg");
+                title: "Сторож соединения";
+                description: "Периодически проверяет, что Discord и YouTube открываются, и сообщает, если стратегия перестала работать.";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+
+                Switch {
+                    text: "Включить сторожа";
+                    checked <=> AppState.watchdog-enabled;
+                    toggled => {
+                        Commands.set-setting("watchdog", self.checked ? 1 : 0);
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: "Проверять каждые (минут)";
+                        vertical-alignment: center;
+                    }
+
+                    SpinBox {
+                        minimum: 1;
+                        maximum: 1440;
+                        value <=> AppState.watchdog-period;
+                        edited(value) => {
+                            Commands.set-setting("watchdog-period", value);
+                        }
+                    }
+                }
+
+                Switch {
+                    text: "Автоматически подбирать новую стратегию при сбое";
+                    checked <=> AppState.auto-rescan;
+                    toggled => {
+                        Commands.set-setting("auto-rescan", self.checked ? 1 : 0);
+                    }
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/tag.svg");
+                title: "Версия zapret";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                Text {
+                    text: AppState.current-version == "" ? "Не скачана" : "Используется " + AppState.current-version + (AppState.update-available != "" ? ". Доступна " + AppState.update-available : "");
+                    wrap: word-wrap;
+                }
+
+                Switch {
+                    text: "Проверять обновления автоматически";
+                    checked <=> AppState.auto-check;
+                    toggled => {
+                        Commands.set-setting("auto-check", self.checked ? 1 : 0);
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    alignment: start;
+                    Button {
+                        text: "Проверить обновления";
+                        enabled: AppState.elevated && !AppState.job-active;
+                        clicked => {
+                            Commands.check-updates();
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    ComboBox {
+                        model: AppState.version-labels;
+                        current-index <=> AppState.version-index;
+                        horizontal-stretch: 1;
+                    }
+
+                    Button {
+                        text: "Выбрать";
+                        enabled: AppState.elevated && !AppState.job-active && AppState.version-tags.length > 0;
+                        clicked => {
+                            Commands.select-version(AppState.version-tags[AppState.version-index]);
+                        }
+                    }
+
+                    Button {
+                        text: "Удалить";
+                        enabled: AppState.elevated && !AppState.job-active && AppState.version-deletable[AppState.version-index];
+                        clicked => {
+                            Dialog.ask("Удаление версии", "Удалить скачанную версию " + AppState.version-tags[AppState.version-index] + "?", "delete-version:" + AppState.version-tags[AppState.version-index], "Удалить");
+                        }
+                    }
+                }
+
+                Text {
+                    text: "Выбор старой версии закрепляет её: обновления не переключат zapret сами.";
+                    wrap: word-wrap;
+                    color: Theme.muted;
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/gamepad-2.svg");
+                title: "Порты игрового режима";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: "TCP";
+                        vertical-alignment: center;
+                    }
+
+                    LineEdit {
+                        text <=> AppState.game-tcp-ports;
+                    }
+
+                    Text {
+                        text: "UDP";
+                        vertical-alignment: center;
+                    }
+
+                    LineEdit {
+                        text <=> AppState.game-udp-ports;
+                    }
+
+                    Button {
+                        text: "Применить";
+                        clicked => {
+                            Commands.set-game-ports(AppState.game-tcp-ports, AppState.game-udp-ports);
+                        }
+                    }
+                }
+
+                Text {
+                    text: "Например: 1024-65535 или 1024-1934,1936-65535";
+                    color: Theme.muted;
+                }
+            }
+        }
+
+        if AppState.fakes-supported: Card {
+            CardHeader {
+                icon: @image-url("../icons/zap.svg");
+                title: "Фейковые пакеты";
+            }
+
+            VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: "Discord UDP";
+                        vertical-alignment: center;
+                        min-width: 100px;
+                    }
+
+                    ComboBox {
+                        model: AppState.fake-names;
+                        current-index <=> AppState.fake-discord-index;
+                        horizontal-stretch: 1;
+                        selected => {
+                            Commands.set-fake(0, self.current-index);
+                        }
+                    }
+                }
+
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text {
+                        text: "Игры UDP";
+                        vertical-alignment: center;
+                        min-width: 100px;
+                    }
+
+                    ComboBox {
+                        model: AppState.fake-names;
+                        current-index <=> AppState.fake-game-index;
+                        horizontal-stretch: 1;
+                        selected => {
+                            Commands.set-fake(1, self.current-index);
+                        }
+                    }
+                }
+            }
+        }
+
+        if AppState.uliana: Card {
+            CardHeader {
+                icon: @image-url("../icons/download.svg");
+                title: "Котик и звуки";
+                description: "Скачивает картинку котика из интернета и берёт звуки котика и свинки из Minecraft на этом компьютере. Minecraft должен быть установлен и хотя бы раз запущен.";
+            }
+
+            HorizontalLayout {
+                alignment: start;
+                Button {
+                    text: "Скачать котика и звуки";
+                    clicked => {
+                        Commands.install-uliana-assets();
+                    }
+                }
+            }
+        }
+
+        Card {
+            CardHeader {
+                icon: @image-url("../icons/info.svg");
+                title: "О программе";
+            }
+
+            VerticalLayout {
+                spacing: 6px;
+                Text {
+                    text: "zapret-gui " + AppState.app-version + (AppState.is-mock ? " (режим имитации)" : "");
+                    font-weight: 600;
+                }
+
+                Text {
+                    text: "zapret-gui - неофициальная программа. Это не проект zapret и не проект Flowseal: об ошибках программы сообщайте в её репозиторий, а не авторам zapret.";
+                    wrap: word-wrap;
+                }
+
+                Text {
+                    text: "Использует: zapret-discord-youtube (Flowseal, MIT), zapret / winws (bol-van, MIT), WinDivert (basil00, LGPL-3.0), проверки DPI dpi-checkers (hyperion-cs, Apache-2.0), иконки Lucide (ISC). Лицензия программы: MIT.";
+                    wrap: word-wrap;
+                    color: Theme.muted;
+                }
+
+                AboutSlint {
+                    max-height: 140px;
+                }
+
+                HorizontalLayout {
+                    alignment: start;
+                    Button {
+                        text: "Выйти из программы";
+                        clicked => {
+                            Commands.quit();
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

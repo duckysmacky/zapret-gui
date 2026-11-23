@@ -1,0 +1,23 @@
+[package]
+name = "zapret-ui"
+version = "1.0.0"
+edition = "2024"
+
+[[bin]]
+name = "zapret-gui"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.104"
+interprocess = "2.4.8"
+notify-rust = "4.19.0"
+slint = "1.19.0"
+tokio = { version = "1.54.1", features = ["rt"] }
+tracing = "0.1.44"
+zapret-core.workspace = true
+
+[build-dependencies]
+slint-build = "1.19.0"
+
+[target."cfg(windows)".dependencies]
+tray-icon = "0.26.1"
