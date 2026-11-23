@@ -4,6 +4,8 @@
 
 ---
 
+<div align="center">
+
 **Простая программа для Windows, которая возвращает Discord и YouTube одной кнопкой.**
 
 [![Platform: Windows](https://img.shields.io/badge/platform-Windows-0078D4?logo=windows&logoColor=white)](https://github.com/duckysmacky/zapret-gui/releases)
@@ -13,6 +15,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Made with Rust](https://img.shields.io/badge/made%20with-Rust-dea584?logo=rust&logoColor=white)](https://www.rust-lang.org)
 
+</div>
 
 > **zapret-gui - неофициальная программа.** Это не проект zapret и не проект Flowseal. Об ошибках программы
 > сообщайте в этот репозиторий, а не авторам zapret.
