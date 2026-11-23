@@ -1,6 +1,7 @@
 import { Button, ComboBox, ScrollView, Switch, Palette } from "std-widgets.slint";
 import { AppState, Commands } from "../globals.slint";
 import { Card, CardHeader, Icon, Theme } from "../components.slint";
+import { ChecksList } from "diagnostics.slint";
 
 // The big round on/off button. Glows in the state color; pulses while starting or when the connection is lost.
 export component PowerButton inherits Rectangle {
@@ -302,6 +303,29 @@ export component HomePage inherits ScrollView {
                     wrap: word-wrap;
                 }
             }
-        }
+            
+            Card {
+                CardHeader {
+                    icon: @image-url("../icons/stethoscope.svg");
+                    title: "Проверка системы";
+                    description: "Находит, что может мешать обходу, и предлагает исправление.";
+                }
+
+                HorizontalLayout {
+                    alignment: start;
+                    Button {
+                            text: "Запустить проверки";
+                        icon: @image-url("../icons/refresh-cw.svg");
+                        colorize-icon: true;
+                        enabled: !AppState.job-active;
+                        clicked => {
+                            Commands.run-diagnostics();
+                        }
+                    }
+                }
+
+                ChecksList { }
+            }
+    }
     }
 }
